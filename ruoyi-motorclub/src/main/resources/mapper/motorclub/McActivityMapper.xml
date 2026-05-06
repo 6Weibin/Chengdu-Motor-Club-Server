@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.motorclub.mapper.McActivityMapper">
+
+    <resultMap id="McActivityResult" type="McActivity">
+        <id property="activityId" column="activity_id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="coverImageUrl" column="cover_image_url"/>
+        <result property="activityDate" column="activity_date"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="location" column="location"/>
+        <result property="capacity" column="capacity"/>
+        <result property="currentParticipants" column="current_participants"/>
+        <result property="status" column="status"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="selectMcActivityVo">
+        select activity_id, title, description, cover_image_url, activity_date, start_time, end_time, location,
+               capacity, current_participants, status, create_by, create_time, update_by, update_time, remark
+        from mc_activity
+    </sql>
+
+    <select id="selectMcActivityById" parameterType="Long" resultMap="McActivityResult">
+        <include refid="selectMcActivityVo"/>
+        where activity_id = #{activityId}
+    </select>
+
+    <select id="selectMcActivityList" parameterType="McActivity" resultMap="McActivityResult">
+        <include refid="selectMcActivityVo"/>
+        <where>
+            <if test="title != null and title != ''">
+                and title like concat('%', #{title}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="location != null and location != ''">
+                and location like concat('%', #{location}, '%')
+            </if>
+        </where>
+        order by activity_date desc, create_time desc
+    </select>
+
+    <insert id="insertMcActivity" parameterType="McActivity" useGeneratedKeys="true" keyProperty="activityId">
+        insert into mc_activity (
+            title, description, cover_image_url, activity_date, start_time, end_time, location, capacity,
+            current_participants, status, create_by, create_time, update_by, update_time, remark
+        ) values (
+            #{title}, #{description}, #{coverImageUrl}, #{activityDate}, #{startTime}, #{endTime}, #{location}, #{capacity},
+            #{currentParticipants}, #{status}, #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
+        )
+    </insert>
+
+    <update id="updateMcActivity" parameterType="McActivity">
+        update mc_activity
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="coverImageUrl != null">cover_image_url = #{coverImageUrl},</if>
+            <if test="activityDate != null">activity_date = #{activityDate},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="location != null">location = #{location},</if>
+            <if test="capacity != null">capacity = #{capacity},</if>
+            <if test="currentParticipants != null">current_participants = #{currentParticipants},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        where activity_id = #{activityId}
+    </update>
+
+    <delete id="deleteMcActivityByIds" parameterType="Long">
+        delete from mc_activity where activity_id in
+        <foreach collection="array" item="activityId" open="(" separator="," close=")">
+            #{activityId}
+        </foreach>
+    </delete>
+
+</mapper>

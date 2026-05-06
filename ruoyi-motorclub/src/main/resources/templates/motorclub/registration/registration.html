@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('活动报名管理')" />
+</head>
+<body class="gray-bg">
+<div class="container-div">
+    <div class="row">
+        <div class="col-sm-12 search-collapse">
+            <form id="registration-form">
+                <div class="select-list">
+                    <ul>
+                        <li>活动ID：<input type="text" name="activityId"/></li>
+                        <li>用户ID：<input type="text" name="userId"/></li>
+                        <li>
+                            报名状态：
+                            <select name="status">
+                                <option value="">全部</option>
+                                <option value="pending">待审核</option>
+                                <option value="approved">已通过</option>
+                                <option value="rejected">已驳回</option>
+                            </select>
+                        </li>
+                        <li>
+                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                            <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                        </li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+        <div class="col-sm-12 select-table table-striped">
+            <table id="bootstrap-table"></table>
+        </div>
+    </div>
+</div>
+<th:block th:include="include :: footer" />
+<script th:inline="javascript">
+    var reviewFlag = [[${@permission.hasPermi('motorclub:registration:review')}]];
+    var prefix = ctx + "motorclub/registration";
+
+    $(function() {
+        var options = {
+            url: prefix + "/list",
+            modalName: "活动报名",
+            columns: [{
+                field: 'registrationId',
+                title: '报名编号'
+            },
+            {
+                field: 'activityTitle',
+                title: '活动标题'
+            },
+            {
+                field: 'userNickName',
+                title: '用户昵称'
+            },
+            {
+                field: 'userRealName',
+                title: '真实姓名'
+            },
+            {
+                field: 'status',
+                title: '报名状态'
+            },
+            {
+                field: 'checkedIn',
+                title: '签到状态',
+                formatter: function(value) {
+                    return value === '1' ? '已签到' : '未签到';
+                }
+            },
+            {
+                field: 'createTime',
+                title: '报名时间'
+            },
+            {
+                title: '操作',
+                align: 'center',
+                formatter: function(value, row) {
+                    return '<a class="btn btn-info btn-xs ' + reviewFlag + '" href="javascript:void(0)" onclick="$.modal.open(\'审核报名\', prefix + \'/review/' + row.registrationId + '\', 700, 520)"><i class="fa fa-check"></i>审核</a>';
+                }
+            }]
+        };
+        $.table.init(options);
+    });
+</script>
+</body>
+</html>

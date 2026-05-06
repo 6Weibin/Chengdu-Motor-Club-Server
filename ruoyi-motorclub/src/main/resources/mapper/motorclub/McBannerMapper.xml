@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.motorclub.mapper.McBannerMapper">
+
+    <resultMap id="McBannerResult" type="McBanner">
+        <id property="bannerId" column="banner_id"/>
+        <result property="title" column="title"/>
+        <result property="imageUrl" column="image_url"/>
+        <result property="linkUrl" column="link_url"/>
+        <result property="sort" column="sort"/>
+        <result property="status" column="status"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="selectMcBannerVo">
+        select banner_id, title, image_url, link_url, sort, status,
+               create_by, create_time, update_by, update_time, remark
+        from mc_banner
+    </sql>
+
+    <select id="selectMcBannerById" parameterType="Long" resultMap="McBannerResult">
+        <include refid="selectMcBannerVo"/>
+        where banner_id = #{bannerId}
+    </select>
+
+    <select id="selectMcBannerList" parameterType="McBanner" resultMap="McBannerResult">
+        <include refid="selectMcBannerVo"/>
+        <where>
+            <if test="title != null and title != ''">
+                and title like concat('%', #{title}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+        </where>
+        order by sort asc, create_time desc
+    </select>
+
+    <select id="selectEnabledMcBannerList" resultMap="McBannerResult">
+        <include refid="selectMcBannerVo"/>
+        where status = '0'
+        order by sort asc, create_time desc
+    </select>
+
+    <insert id="insertMcBanner" parameterType="McBanner" useGeneratedKeys="true" keyProperty="bannerId">
+        insert into mc_banner (
+            title, image_url, link_url, sort, status,
+            create_by, create_time, update_by, update_time, remark
+        ) values (
+            #{title}, #{imageUrl}, #{linkUrl}, #{sort}, #{status},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
+        )
+    </insert>
+
+    <update id="updateMcBanner" parameterType="McBanner">
+        update mc_banner
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="imageUrl != null">image_url = #{imageUrl},</if>
+            <if test="linkUrl != null">link_url = #{linkUrl},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        where banner_id = #{bannerId}
+    </update>
+
+    <delete id="deleteMcBannerByIds" parameterType="Long">
+        delete from mc_banner where banner_id in
+        <foreach collection="array" item="bannerId" open="(" separator="," close=")">
+            #{bannerId}
+        </foreach>
+    </delete>
+
+</mapper>

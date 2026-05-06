@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.motorclub.mapper.McAdminPermissionMapper">
+
+    <resultMap id="McAdminPermissionResult" type="McAdminPermission">
+        <id property="permissionId" column="permission_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="memberManage" column="member_manage"/>
+        <result property="activityManage" column="activity_manage"/>
+        <result property="bannerManage" column="banner_manage"/>
+        <result property="benefitManage" column="benefit_manage"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="selectMcAdminPermissionVo">
+        select permission_id, user_id, member_manage, activity_manage, banner_manage, benefit_manage,
+               create_by, create_time, update_by, update_time, remark
+        from mc_admin_permission
+    </sql>
+
+    <select id="selectMcAdminPermissionByUserId" parameterType="Long" resultMap="McAdminPermissionResult">
+        <include refid="selectMcAdminPermissionVo"/>
+        where user_id = #{userId}
+    </select>
+
+    <insert id="insertMcAdminPermission" parameterType="McAdminPermission" useGeneratedKeys="true" keyProperty="permissionId">
+        insert into mc_admin_permission (
+            user_id, member_manage, activity_manage, banner_manage, benefit_manage,
+            create_by, create_time, update_by, update_time, remark
+        ) values (
+            #{userId}, #{memberManage}, #{activityManage}, #{bannerManage}, #{benefitManage},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
+        )
+    </insert>
+
+    <update id="updateMcAdminPermission" parameterType="McAdminPermission">
+        update mc_admin_permission
+        <set>
+            <if test="memberManage != null">member_manage = #{memberManage},</if>
+            <if test="activityManage != null">activity_manage = #{activityManage},</if>
+            <if test="bannerManage != null">banner_manage = #{bannerManage},</if>
+            <if test="benefitManage != null">benefit_manage = #{benefitManage},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        where permission_id = #{permissionId}
+    </update>
+
+    <delete id="deleteMcAdminPermissionByUserId" parameterType="Long">
+        delete from mc_admin_permission where user_id = #{userId}
+    </delete>
+
+</mapper>

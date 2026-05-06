@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('签到码管理')" />
+</head>
+<body class="gray-bg">
+<div class="container-div">
+    <div class="row">
+        <div class="col-sm-12 search-collapse">
+            <form id="checkin-form">
+                <div class="select-list">
+                    <ul>
+                        <li>活动标题：<input type="text" name="title"/></li>
+                        <li>
+                            活动状态：
+                            <select name="status">
+                                <option value="">全部</option>
+                                <option value="upcoming">未开始</option>
+                                <option value="ongoing">进行中</option>
+                                <option value="completed">已完成</option>
+                                <option value="canceled">已取消</option>
+                            </select>
+                        </li>
+                        <li>
+                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                            <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                        </li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+        <div class="col-sm-12 select-table table-striped">
+            <table id="bootstrap-table"></table>
+        </div>
+    </div>
+</div>
+<th:block th:include="include :: footer" />
+<script th:inline="javascript">
+    var generateFlag = [[${@permission.hasPermi('motorclub:checkin:generate')}]];
+    var prefix = ctx + "motorclub/checkin";
+
+    $(function() {
+        var options = {
+            url: prefix + "/list",
+            modalName: "签到活动",
+            columns: [{
+                field: 'activityId',
+                title: '活动编号'
+            },
+            {
+                field: 'title',
+                title: '活动标题'
+            },
+            {
+                field: 'activityDate',
+                title: '活动日期'
+            },
+            {
+                field: 'location',
+                title: '活动地点'
+            },
+            {
+                field: 'status',
+                title: '活动状态'
+            },
+            {
+                title: '操作',
+                align: 'center',
+                formatter: function(value, row) {
+                    return '<a class="btn btn-primary btn-xs ' + generateFlag + '" href="javascript:void(0)" onclick="generateCode(\'' + row.activityId + '\')"><i class="fa fa-qrcode"></i>生成/刷新签到码</a>';
+                }
+            }]
+        };
+        $.table.init(options);
+    });
+
+    /* 生成后直接弹出原始码值，方便下一期对接小程序扫码入口。 */
+    function generateCode(activityId) {
+        $.ajax({
+            url: prefix + "/generate/" + activityId,
+            type: "post",
+            success: function(result) {
+                if (result.code === 0) {
+                    $.modal.alertSuccess("签到码内容：" + result.data.codeValue);
+                } else {
+                    $.modal.alertError(result.msg);
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>

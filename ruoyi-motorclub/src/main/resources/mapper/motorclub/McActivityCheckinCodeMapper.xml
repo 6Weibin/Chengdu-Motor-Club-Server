@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.motorclub.mapper.McActivityCheckinCodeMapper">
+
+    <resultMap id="McActivityCheckinCodeResult" type="McActivityCheckinCode">
+        <id property="codeId" column="code_id"/>
+        <result property="activityId" column="activity_id"/>
+        <result property="token" column="token"/>
+        <result property="codeValue" column="code_value"/>
+        <result property="generatedTime" column="generated_time"/>
+        <result property="generatedBy" column="generated_by"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="selectMcActivityCheckinCodeVo">
+        select code_id, activity_id, token, code_value, generated_time, generated_by,
+               create_by, create_time, update_by, update_time, remark
+        from mc_activity_checkin_code
+    </sql>
+
+    <select id="selectMcActivityCheckinCodeByActivityId" parameterType="Long" resultMap="McActivityCheckinCodeResult">
+        <include refid="selectMcActivityCheckinCodeVo"/>
+        where activity_id = #{activityId}
+    </select>
+
+    <select id="selectMcActivityCheckinCodeByToken" parameterType="String" resultMap="McActivityCheckinCodeResult">
+        <include refid="selectMcActivityCheckinCodeVo"/>
+        where token = #{token}
+    </select>
+
+    <insert id="insertMcActivityCheckinCode" parameterType="McActivityCheckinCode" useGeneratedKeys="true" keyProperty="codeId">
+        insert into mc_activity_checkin_code (
+            activity_id, token, code_value, generated_time, generated_by,
+            create_by, create_time, update_by, update_time, remark
+        ) values (
+            #{activityId}, #{token}, #{codeValue}, #{generatedTime}, #{generatedBy},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
+        )
+    </insert>
+
+    <update id="updateMcActivityCheckinCode" parameterType="McActivityCheckinCode">
+        update mc_activity_checkin_code
+        <set>
+            <if test="token != null">token = #{token},</if>
+            <if test="codeValue != null">code_value = #{codeValue},</if>
+            <if test="generatedTime != null">generated_time = #{generatedTime},</if>
+            <if test="generatedBy != null">generated_by = #{generatedBy},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        where code_id = #{codeId}
+    </update>
+
+</mapper>

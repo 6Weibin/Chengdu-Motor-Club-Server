@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('车友会系统配置')" />
+</head>
+<body class="gray-bg">
+<div class="wrapper wrapper-content animated fadeInRight ibox-content">
+    <form class="form-horizontal m" id="form-setting">
+        <div class="form-group">
+            <label class="col-sm-3 control-label">允许用户编辑资料：</label>
+            <div class="col-sm-8">
+                <select id="allowProfileEdit" class="form-control">
+                    <option value="true">允许</option>
+                    <option value="false">不允许</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">入会需要审核：</label>
+            <div class="col-sm-8">
+                <select id="joinNeedReview" class="form-control">
+                    <option value="true">需要</option>
+                    <option value="false">不需要</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">要求完整实名资料：</label>
+            <div class="col-sm-8">
+                <select id="joinRequireDetailedProfile" class="form-control">
+                    <option value="true">要求</option>
+                    <option value="false">不要求</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-sm-8 col-sm-offset-3">
+                <a class="btn btn-primary" href="javascript:void(0)" onclick="saveSetting()">保存配置</a>
+            </div>
+        </div>
+    </form>
+</div>
+<th:block th:include="include :: footer" />
+<script type="text/javascript">
+    var prefix = ctx + "motorclub/setting";
+
+    $(function() {
+        $.get(prefix + "/detail", function(result) {
+            if (result.code === 0 && result.data) {
+                $("#allowProfileEdit").val(String(result.data.allowProfileEdit));
+                $("#joinNeedReview").val(String(result.data.joinNeedReview));
+                $("#joinRequireDetailedProfile").val(String(result.data.joinRequireDetailedProfile));
+            }
+        });
+    });
+
+    function saveSetting() {
+        var data = {
+            allowProfileEdit: $("#allowProfileEdit").val() === "true",
+            joinNeedReview: $("#joinNeedReview").val() === "true",
+            joinRequireDetailedProfile: $("#joinRequireDetailedProfile").val() === "true"
+        };
+        $.ajax({
+            url: prefix + "/save",
+            type: "post",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function(result) {
+                $.modal.msgSuccess(result.msg);
+            }
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('编辑Banner')" />
+</head>
+<body class="white-bg">
+<div class="wrapper wrapper-content animated fadeInRight ibox-content">
+    <form class="form-horizontal m" id="form-banner-edit" th:object="${banner}">
+        <input name="bannerId" th:field="*{bannerId}" type="hidden">
+        <div class="form-group">
+            <label class="col-sm-3 control-label is-required">标题：</label>
+            <div class="col-sm-8">
+                <input name="title" th:field="*{title}" class="form-control" type="text" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label is-required">图片地址：</label>
+            <div class="col-sm-8">
+                <input name="imageUrl" th:field="*{imageUrl}" class="form-control" type="text" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">跳转链接：</label>
+            <div class="col-sm-8">
+                <input name="linkUrl" th:field="*{linkUrl}" class="form-control" type="text">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">排序：</label>
+            <div class="col-sm-8">
+                <input name="sort" th:field="*{sort}" class="form-control" type="number">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">状态：</label>
+            <div class="col-sm-8">
+                <select name="status" th:field="*{status}" class="form-control">
+                    <option value="0">启用</option>
+                    <option value="1">停用</option>
+                </select>
+            </div>
+        </div>
+    </form>
+</div>
+<th:block th:include="include :: footer" />
+<script type="text/javascript">
+    var prefix = ctx + "motorclub/banner";
+
+    function submitHandler() {
+        if ($.validate.form()) {
+            $.operate.save(prefix + "/edit", $('#form-banner-edit').serialize());
+        }
+    }
+</script>
+</body>
+</html>

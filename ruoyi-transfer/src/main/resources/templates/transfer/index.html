@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<!-- 在线文件传输页面 by AI.Coding -->
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="include :: header(${pageTitle})"></head>
+<style>
+    /* 上传区域样式：让移动端和桌面端都能快速识别主操作入口。 */
+    .transfer-upload-panel {
+        border: 1px dashed #1c84c6;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #f4fbff 0%, #ffffff 100%);
+        padding: 24px 20px;
+        text-align: center;
+        box-shadow: 0 8px 24px rgba(28, 132, 198, 0.08);
+    }
+
+    .transfer-upload-panel .upload-title {
+        margin: 0 0 8px;
+        font-size: 20px;
+        color: #1f2d3d;
+    }
+
+    .transfer-upload-panel .upload-desc {
+        margin: 0 0 18px;
+        color: #657180;
+        line-height: 1.7;
+    }
+
+    .transfer-upload-button {
+        min-width: 220px;
+        height: 46px;
+        border-radius: 24px;
+        font-size: 15px;
+        box-shadow: 0 10px 22px rgba(28, 132, 198, 0.2);
+    }
+
+    .transfer-upload-tips {
+        margin-top: 14px;
+        color: #999;
+        font-size: 12px;
+    }
+
+    .transfer-progress-wrapper {
+        display: none;
+        max-width: 420px;
+        margin: 18px auto 0;
+        text-align: left;
+    }
+
+    .transfer-progress-text {
+        margin-bottom: 8px;
+        color: #657180;
+        font-size: 13px;
+    }
+
+    .transfer-progress {
+        height: 10px;
+        margin-bottom: 0;
+        background-color: #e8f3fb;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .transfer-progress .progress-bar {
+        min-width: 2em;
+        line-height: 10px;
+        font-size: 11px;
+        background: linear-gradient(90deg, #1c84c6 0%, #23c6c8 100%);
+    }
+
+    .transfer-refresh-tip {
+        display: inline-block;
+        margin-right: 12px;
+        color: #999;
+        font-size: 12px;
+        vertical-align: middle;
+    }
+
+    @media (max-width: 767px) {
+        .transfer-upload-panel {
+            padding: 20px 16px;
+        }
+
+        .transfer-upload-button {
+            width: 100%;
+            min-width: auto;
+        }
+
+        .transfer-refresh-tip {
+            display: block;
+            margin: 0 0 10px;
+            text-align: right;
+        }
+    }
+</style>
+<body class="gray-bg">
+<div class="wrapper wrapper-content">
+    <!-- 页面主体：保持手机与桌面浏览器都能直接操作。 -->
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5 th:text="${pageTitle}">在线文件传输</h5>
+                </div>
+                <div class="ibox-content">
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle"></i>
+                        启动服务后，手机和电脑访问同一个 <strong>/transfer</strong> 页面即可互传文件，无需登录。
+                    </div>
+
+                    <div class="row" style="margin-bottom: 18px;">
+                        <div class="col-sm-12">
+                            <div class="transfer-upload-panel">
+                                <h3 class="upload-title">快速上传文件</h3>
+                                <p class="upload-desc">点击下方按钮选择文件，选定后会立即开始上传，不需要再额外点一次上传。</p>
+                                <input id="transferFileInput" type="file" style="display: none;"/>
+                                <button id="uploadButton" class="btn btn-primary transfer-upload-button" type="button">
+                                    <i class="fa fa-folder-open"></i> 选择并上传文件
+                                </button>
+                                <div id="uploadProgressWrapper" class="transfer-progress-wrapper">
+                                    <div id="uploadProgressText" class="transfer-progress-text">正在准备上传...</div>
+                                    <div class="progress transfer-progress">
+                                        <div id="uploadProgressBar" class="progress-bar progress-bar-success" role="progressbar"
+                                             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0;">0%</div>
+                                    </div>
+                                </div>
+                                <div class="transfer-upload-tips">支持手机相册、文件管理器和电脑本地文件选择。</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 18px;">
+                        <div class="col-sm-12">
+                            <div id="statusBar" class="alert alert-warning" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 18px;">
+                        <div class="col-sm-6">
+                            <h4 style="margin-top: 0;">文件列表</h4>
+                        </div>
+                        <div class="col-sm-6 text-right">
+                            <span id="refreshTip" class="transfer-refresh-tip">列表每 5 秒自动刷新</span>
+                            <button id="refreshButton" class="btn btn-default" type="button">
+                                <i class="fa fa-refresh"></i> 刷新列表
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="fileList" class="row">
+                        <div class="col-sm-12">
+                            <div class="alert alert-success">正在加载文件列表...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="include :: footer"></div>
+<script th:inline="javascript">
+    var ctx = [[@{/}]];
+
+    // 缓存常用节点，减少重复查询 DOM。
+    var fileInput = document.getElementById('transferFileInput');
+    var uploadButton = document.getElementById('uploadButton');
+    var refreshButton = document.getElementById('refreshButton');
+    var refreshTip = document.getElementById('refreshTip');
+    var statusBar = document.getElementById('statusBar');
+    var fileList = document.getElementById('fileList');
+    var uploadProgressWrapper = document.getElementById('uploadProgressWrapper');
+    var uploadProgressText = document.getElementById('uploadProgressText');
+    var uploadProgressBar = document.getElementById('uploadProgressBar');
+    var autoRefreshTimer = null;
+    var AUTO_REFRESH_INTERVAL = 5000;
+    var isLoadingFiles = false;
+
+    /**
+     * 显示页面状态消息。
+     *
+     * @param message 提示内容
+     * @param type Bootstrap 提示类型
+     */
+    function showStatus(message, type) {
+        statusBar.className = 'alert alert-' + type;
+        statusBar.textContent = message;
+        statusBar.style.display = 'block';
+    }
+
+    /**
+     * 隐藏页面状态消息。
+     */
+    function hideStatus() {
+        statusBar.style.display = 'none';
+    }
+
+    /**
+     * 更新上传进度条显示。
+     *
+     * @param percent 当前进度百分比
+     * @param text 当前进度说明
+     */
+    function updateUploadProgress(percent, text) {
+        var safePercent = Math.max(0, Math.min(100, Math.round(percent || 0)));
+        uploadProgressWrapper.style.display = 'block';
+        uploadProgressText.textContent = text;
+        uploadProgressBar.style.width = safePercent + '%';
+        uploadProgressBar.setAttribute('aria-valuenow', safePercent);
+        uploadProgressBar.textContent = safePercent + '%';
+    }
+
+    /**
+     * 隐藏上传进度条。
+     */
+    function hideUploadProgress() {
+        uploadProgressWrapper.style.display = 'none';
+        uploadProgressBar.style.width = '0';
+        uploadProgressBar.setAttribute('aria-valuenow', '0');
+        uploadProgressBar.textContent = '0%';
+    }
+
+    /**
+     * 将字节数转换成适合展示的文件大小。
+     *
+     * @param size 文件大小
+     * @returns {string} 格式化后的大小
+     */
+    function formatFileSize(size) {
+        if (size < 1024) {
+            return size + ' B';
+        }
+        if (size < 1024 * 1024) {
+            return (size / 1024).toFixed(1) + ' KB';
+        }
+        if (size < 1024 * 1024 * 1024) {
+            return (size / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+        return (size / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+    }
+
+    /**
+     * 将时间戳格式化成本地可读时间。
+     *
+     * @param timestamp 毫秒时间戳
+     * @returns {string} 可读时间
+     */
+    function formatTime(timestamp) {
+        return new Date(timestamp).toLocaleString();
+    }
+
+    /**
+     * 渲染文件列表区域。
+     *
+     * @param files 文件数组
+     */
+    function renderFileList(files) {
+        if (!files || files.length === 0) {
+            fileList.innerHTML = '<div class="col-sm-12"><div class="alert alert-info">当前还没有文件，先上传一个试试。</div></div>';
+            return;
+        }
+
+        // 使用卡片式布局，兼顾手机浏览器与桌面浏览器可读性。
+        var html = files.map(function (item) {
+            return '' +
+                '<div class="col-sm-6">' +
+                    '<div class="panel panel-default">' +
+                        '<div class="panel-body">' +
+                            '<h4 style="word-break: break-all; margin-top: 0;">' + escapeHtml(item.name) + '</h4>' +
+                            '<p class="text-muted" style="margin-bottom: 8px;">大小：' + formatFileSize(item.size) + '</p>' +
+                            '<p class="text-muted" style="margin-bottom: 15px;">上传时间：' + formatTime(item.uploadTime) + '</p>' +
+                            '<div class="btn-group btn-group-sm">' +
+                                '<a class="btn btn-success" href="' + ctx + 'transfer/files/download?key=' + encodeURIComponent(item.key) + '">' +
+                                    '<i class="fa fa-download"></i> 下载' +
+                                '</a>' +
+                                '<button class="btn btn-danger" type="button" onclick="deleteFileItem(\'' + encodeJsString(item.key) + '\')">' +
+                                    '<i class="fa fa-trash"></i> 删除' +
+                                '</button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+        }).join('');
+
+        fileList.innerHTML = html;
+    }
+
+    /**
+     * 读取文件列表。
+     *
+     * @param isSilent 是否静默刷新列表
+     */
+    function loadFiles(isSilent) {
+        if (isLoadingFiles) {
+            return;
+        }
+
+        if (!isSilent) {
+            hideStatus();
+        }
+        isLoadingFiles = true;
+        $.get(ctx + 'transfer/files', function (result) {
+            if (result.code !== 0) {
+                if (!isSilent) {
+                    showStatus(result.msg || '读取文件列表失败', 'danger');
+                }
+                return;
+            }
+            renderFileList(result.data || []);
+        }).fail(function () {
+            if (!isSilent) {
+                showStatus('读取文件列表失败，请稍后重试', 'danger');
+            }
+        }).always(function () {
+            isLoadingFiles = false;
+        });
+    }
+
+    /**
+     * 触发文件选择窗口。
+     */
+    function triggerFileSelection() {
+        // 先清空历史值，保证再次选择同一个文件时仍然触发 change 事件。
+        fileInput.value = '';
+        fileInput.click();
+    }
+
+    /**
+     * 处理文件选择完成事件。
+     */
+    function handleFileSelection() {
+        if (!fileInput.files || fileInput.files.length === 0) {
+            return;
+        }
+        uploadSelectedFile();
+    }
+
+    /**
+     * 上传当前选中的文件。
+     */
+    function uploadSelectedFile() {
+        var selectedFile = fileInput.files[0];
+        if (!selectedFile) {
+            showStatus('请先选择一个文件', 'warning');
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('file', selectedFile);
+        uploadButton.disabled = true;
+        showStatus('正在上传文件，请稍候...', 'info');
+        updateUploadProgress(0, '正在上传：' + selectedFile.name);
+
+        // 采用原生 FormData 上传，兼容手机浏览器直接选择文件。
+        $.ajax({
+            url: ctx + 'transfer/files',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            xhr: function () {
+                var xhr = $.ajaxSettings.xhr();
+                if (xhr.upload) {
+                    // 监听浏览器上传事件，实时更新进度条。
+                    xhr.upload.addEventListener('progress', function (event) {
+                        if (!event.lengthComputable) {
+                            return;
+                        }
+                        updateUploadProgress((event.loaded / event.total) * 100, '正在上传：' + selectedFile.name);
+                    });
+                }
+                return xhr;
+            },
+            success: function (result) {
+                if (result.code !== 0) {
+                    hideUploadProgress();
+                    showStatus(result.msg || '上传失败', 'danger');
+                    return;
+                }
+                fileInput.value = '';
+                updateUploadProgress(100, '上传完成：' + result.data.name);
+                showStatus('上传成功：' + result.data.name, 'success');
+                loadFiles(true);
+            },
+            error: function () {
+                hideUploadProgress();
+                showStatus('上传失败，请检查文件大小或稍后重试', 'danger');
+            },
+            complete: function () {
+                uploadButton.disabled = false;
+                window.setTimeout(hideUploadProgress, 800);
+            }
+        });
+    }
+
+    /**
+     * 启动文件列表自动刷新。
+     */
+    function startAutoRefresh() {
+        stopAutoRefresh();
+        autoRefreshTimer = window.setInterval(function () {
+            // 页面切到后台时不发请求，减少无意义刷新。
+            if (document.hidden) {
+                return;
+            }
+            loadFiles(true);
+        }, AUTO_REFRESH_INTERVAL);
+    }
+
+    /**
+     * 停止文件列表自动刷新。
+     */
+    function stopAutoRefresh() {
+        if (autoRefreshTimer !== null) {
+            window.clearInterval(autoRefreshTimer);
+            autoRefreshTimer = null;
+        }
+    }
+
+    /**
+     * 刷新自动轮询提示文案。
+     */
+    function updateRefreshTip() {
+        refreshTip.textContent = '列表每 ' + (AUTO_REFRESH_INTERVAL / 1000) + ' 秒自动刷新';
+    }
+
+    /**
+     * 删除指定文件。
+     *
+     * @param key 文件键
+     */
+    function deleteFileItem(key) {
+        if (!window.confirm('确定删除这个文件吗？')) {
+            return;
+        }
+
+        $.ajax({
+            url: ctx + 'transfer/files?key=' + encodeURIComponent(key),
+            type: 'DELETE',
+            success: function (result) {
+                if (result.code !== 0) {
+                    showStatus(result.msg || '删除失败', 'danger');
+                    return;
+                }
+                showStatus('文件已删除', 'success');
+                loadFiles(true);
+            },
+            error: function () {
+                showStatus('删除失败，请稍后重试', 'danger');
+            }
+        });
+    }
+
+    /**
+     * 转义 HTML 文本。
+     *
+     * @param text 原始文本
+     * @returns {string} 转义后的文本
+     */
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    /**
+     * 转义嵌入 onclick 的字符串。
+     *
+     * @param text 原始文本
+     * @returns {string} 转义后的文本
+     */
+    function encodeJsString(text) {
+        return String(text).replace(/\\/g, '\\\\').replace(/'/g, '\\\'');
+    }
+
+    // 页面初始化时绑定事件并加载一次列表。
+    uploadButton.addEventListener('click', triggerFileSelection);
+    fileInput.addEventListener('change', handleFileSelection);
+    refreshButton.addEventListener('click', function () {
+        loadFiles(false);
+    });
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+            loadFiles(true);
+        }
+    });
+    updateRefreshTip();
+    hideUploadProgress();
+    loadFiles(false);
+    startAutoRefresh();
+</script>
+</body>
+</html>

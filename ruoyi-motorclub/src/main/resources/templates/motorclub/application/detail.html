@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('审核入会申请')" />
+</head>
+<body class="white-bg">
+<div class="wrapper wrapper-content animated fadeInRight ibox-content">
+    <form class="form-horizontal m" id="form-application-detail" th:object="${application}">
+        <input id="applicationId" th:field="*{applicationId}" type="hidden">
+        <div class="form-group">
+            <label class="col-sm-3 control-label">手机号：</label>
+            <div class="col-sm-8">
+                <input th:field="*{phone}" class="form-control" type="text" readonly>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">真实姓名：</label>
+            <div class="col-sm-8">
+                <input th:field="*{realName}" class="form-control" type="text" readonly>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">车型：</label>
+            <div class="col-sm-8">
+                <input th:field="*{carModel}" class="form-control" type="text" readonly>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">证件号：</label>
+            <div class="col-sm-8">
+                <input th:field="*{idNumberMasked}" class="form-control" type="text" readonly>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">驳回原因：</label>
+            <div class="col-sm-8">
+                <textarea id="rejectReason" class="form-control" rows="3"></textarea>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-sm-8 col-sm-offset-3">
+                <a class="btn btn-success" href="javascript:void(0)" onclick="reviewApplication('approved')">通过</a>
+                <a class="btn btn-danger" href="javascript:void(0)" onclick="reviewApplication('rejected')">驳回</a>
+            </div>
+        </div>
+    </form>
+</div>
+<th:block th:include="include :: footer" />
+<script th:inline="javascript">
+    var prefix = ctx + "motorclub/application";
+
+    function reviewApplication(status) {
+        var data = {
+            status: status,
+            rejectReason: $("#rejectReason").val()
+        };
+        $.ajax({
+            url: prefix + "/review/" + $("#applicationId").val(),
+            type: "post",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function(result) {
+                $.modal.msgSuccess(result.msg);
+                $.modal.close();
+                parent.$.table.search();
+            }
+        });
+    }
+</script>
+</body>
+</html>

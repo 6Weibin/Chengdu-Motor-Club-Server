@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.motorclub.mapper.McUserTokenMapper">
+
+    <resultMap id="McUserTokenResult" type="McUserToken">
+        <id property="tokenId" column="token_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="tokenValue" column="token_value"/>
+        <result property="expiredAt" column="expired_at"/>
+        <result property="lastAccessTime" column="last_access_time"/>
+        <result property="status" column="status"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="selectMcUserTokenVo">
+        select token_id, user_id, token_value, expired_at, last_access_time, status,
+               create_by, create_time, update_by, update_time, remark
+        from mc_user_token
+    </sql>
+
+    <select id="selectMcUserTokenByValue" parameterType="String" resultMap="McUserTokenResult">
+        <include refid="selectMcUserTokenVo"/>
+        where token_value = #{tokenValue}
+    </select>
+
+    <select id="selectMcUserTokenListByUserId" parameterType="Long" resultMap="McUserTokenResult">
+        <include refid="selectMcUserTokenVo"/>
+        where user_id = #{userId}
+        order by create_time desc
+    </select>
+
+    <insert id="insertMcUserToken" parameterType="McUserToken" useGeneratedKeys="true" keyProperty="tokenId">
+        insert into mc_user_token (
+            user_id, token_value, expired_at, last_access_time, status,
+            create_by, create_time, update_by, update_time, remark
+        ) values (
+            #{userId}, #{tokenValue}, #{expiredAt}, #{lastAccessTime}, #{status},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
+        )
+    </insert>
+
+    <update id="updateMcUserToken" parameterType="McUserToken">
+        update mc_user_token
+        <set>
+            <if test="expiredAt != null">expired_at = #{expiredAt},</if>
+            <if test="lastAccessTime != null">last_access_time = #{lastAccessTime},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        where token_id = #{tokenId}
+    </update>
+
+    <update id="expireMcUserTokenByUserId" parameterType="Long">
+        update mc_user_token
+        set status = '1',
+            update_time = sysdate()
+        where user_id = #{userId}
+          and status = '0'
+    </update>
+
+</mapper>

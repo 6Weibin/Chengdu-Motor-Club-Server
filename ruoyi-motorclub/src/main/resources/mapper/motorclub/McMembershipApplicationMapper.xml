@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.motorclub.mapper.McMembershipApplicationMapper">
+
+    <resultMap id="McMembershipApplicationResult" type="McMembershipApplication">
+        <id property="applicationId" column="application_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="phone" column="phone"/>
+        <result property="realName" column="real_name"/>
+        <result property="carModel" column="car_model"/>
+        <result property="idNumberMasked" column="id_number_masked"/>
+        <result property="status" column="status"/>
+        <result property="rejectReason" column="reject_reason"/>
+        <result property="reviewBy" column="review_by"/>
+        <result property="reviewTime" column="review_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+        <association property="user" javaType="McUser">
+            <id property="userId" column="ref_user_id"/>
+            <result property="nickName" column="ref_nick_name"/>
+            <result property="phone" column="ref_phone"/>
+            <result property="realName" column="ref_real_name"/>
+            <result property="memberStatus" column="ref_member_status"/>
+            <result property="appAdminType" column="ref_app_admin_type"/>
+            <result property="status" column="ref_status"/>
+        </association>
+    </resultMap>
+
+    <sql id="selectMcMembershipApplicationVo">
+        select a.application_id, a.user_id, a.phone, a.real_name, a.car_model, a.id_number_masked, a.status, a.reject_reason,
+               a.review_by, a.review_time, a.create_by, a.create_time, a.update_by, a.update_time, a.remark,
+               u.user_id as ref_user_id, u.nick_name as ref_nick_name, u.phone as ref_phone, u.real_name as ref_real_name,
+               u.member_status as ref_member_status, u.app_admin_type as ref_app_admin_type, u.status as ref_status
+        from mc_membership_application a
+        left join mc_user u on a.user_id = u.user_id
+    </sql>
+
+    <select id="selectMcMembershipApplicationById" parameterType="Long" resultMap="McMembershipApplicationResult">
+        <include refid="selectMcMembershipApplicationVo"/>
+        where a.application_id = #{applicationId}
+    </select>
+
+    <select id="selectLatestMcMembershipApplicationByUserId" parameterType="Long" resultMap="McMembershipApplicationResult">
+        <include refid="selectMcMembershipApplicationVo"/>
+        where a.user_id = #{userId}
+        order by a.create_time desc
+        limit 1
+    </select>
+
+    <select id="selectMcMembershipApplicationList" parameterType="McMembershipApplication" resultMap="McMembershipApplicationResult">
+        <include refid="selectMcMembershipApplicationVo"/>
+        <where>
+            <if test="userId != null">
+                and a.user_id = #{userId}
+            </if>
+            <if test="status != null and status != ''">
+                and a.status = #{status}
+            </if>
+            <if test="phone != null and phone != ''">
+                and a.phone like concat('%', #{phone}, '%')
+            </if>
+            <if test="realName != null and realName != ''">
+                and a.real_name like concat('%', #{realName}, '%')
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+
+    <insert id="insertMcMembershipApplication" parameterType="McMembershipApplication" useGeneratedKeys="true" keyProperty="applicationId">
+        insert into mc_membership_application (
+            user_id, phone, real_name, car_model, id_number_masked, status, reject_reason,
+            review_by, review_time, create_by, create_time, update_by, update_time, remark
+        ) values (
+            #{userId}, #{phone}, #{realName}, #{carModel}, #{idNumberMasked}, #{status}, #{rejectReason},
+            #{reviewBy}, #{reviewTime}, #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
+        )
+    </insert>
+
+    <update id="updateMcMembershipApplication" parameterType="McMembershipApplication">
+        update mc_membership_application
+        <set>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="realName != null">real_name = #{realName},</if>
+            <if test="carModel != null">car_model = #{carModel},</if>
+            <if test="idNumberMasked != null">id_number_masked = #{idNumberMasked},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="rejectReason != null">reject_reason = #{rejectReason},</if>
+            <if test="reviewBy != null">review_by = #{reviewBy},</if>
+            <if test="reviewTime != null">review_time = #{reviewTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        where application_id = #{applicationId}
+    </update>
+
+</mapper>

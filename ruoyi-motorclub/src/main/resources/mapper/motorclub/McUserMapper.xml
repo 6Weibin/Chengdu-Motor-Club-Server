@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.motorclub.mapper.McUserMapper">
+
+    <resultMap id="McUserResult" type="McUser">
+        <id property="userId" column="user_id"/>
+        <result property="openid" column="openid"/>
+        <result property="unionid" column="unionid"/>
+        <result property="nickName" column="nick_name"/>
+        <result property="avatarUrl" column="avatar_url"/>
+        <result property="phone" column="phone"/>
+        <result property="realName" column="real_name"/>
+        <result property="idNumberCipher" column="id_number_cipher"/>
+        <result property="idNumberMasked" column="id_number_masked"/>
+        <result property="carModel" column="car_model"/>
+        <result property="memberStatus" column="member_status"/>
+        <result property="memberCardNo" column="member_card_no"/>
+        <result property="joinTime" column="join_time"/>
+        <result property="appAdminType" column="app_admin_type"/>
+        <result property="status" column="status"/>
+        <result property="lastLoginIp" column="last_login_ip"/>
+        <result property="lastLoginTime" column="last_login_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="selectMcUserVo">
+        select user_id, openid, unionid, nick_name, avatar_url, phone, real_name, id_number_cipher, id_number_masked,
+               car_model, member_status, member_card_no, join_time, app_admin_type, status, last_login_ip, last_login_time,
+               create_by, create_time, update_by, update_time, remark
+        from mc_user
+    </sql>
+
+    <select id="selectMcUserById" parameterType="Long" resultMap="McUserResult">
+        <include refid="selectMcUserVo"/>
+        where user_id = #{userId}
+    </select>
+
+    <select id="selectMcUserByOpenid" parameterType="String" resultMap="McUserResult">
+        <include refid="selectMcUserVo"/>
+        where openid = #{openid}
+    </select>
+
+    <select id="countMcUserByAvatarUrl" parameterType="String" resultType="int">
+        select count(1)
+        from mc_user
+        where avatar_url = #{avatarUrl}
+           or avatar_url like concat('%', #{avatarUrl})
+    </select>
+
+    <select id="selectMcUserList" parameterType="McUser" resultMap="McUserResult">
+        <include refid="selectMcUserVo"/>
+        <where>
+            <if test="nickName != null and nickName != ''">
+                and nick_name like concat('%', #{nickName}, '%')
+            </if>
+            <if test="phone != null and phone != ''">
+                and phone like concat('%', #{phone}, '%')
+            </if>
+            <if test="realName != null and realName != ''">
+                and real_name like concat('%', #{realName}, '%')
+            </if>
+            <if test="memberStatus != null and memberStatus != ''">
+                and member_status = #{memberStatus}
+            </if>
+            <if test="appAdminType != null and appAdminType != ''">
+                and app_admin_type = #{appAdminType}
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <insert id="insertMcUser" parameterType="McUser" useGeneratedKeys="true" keyProperty="userId">
+        insert into mc_user (
+            openid, unionid, nick_name, avatar_url, phone, real_name, id_number_cipher, id_number_masked, car_model,
+            member_status, member_card_no, join_time, app_admin_type, status, last_login_ip, last_login_time,
+            create_by, create_time, update_by, update_time, remark
+        ) values (
+            #{openid}, #{unionid}, #{nickName}, #{avatarUrl}, #{phone}, #{realName}, #{idNumberCipher}, #{idNumberMasked}, #{carModel},
+            #{memberStatus}, #{memberCardNo}, #{joinTime}, #{appAdminType}, #{status}, #{lastLoginIp}, #{lastLoginTime},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
+        )
+    </insert>
+
+    <update id="updateMcUser" parameterType="McUser">
+        update mc_user
+        <set>
+            <if test="openid != null">openid = #{openid},</if>
+            <if test="unionid != null">unionid = #{unionid},</if>
+            <if test="nickName != null">nick_name = #{nickName},</if>
+            <if test="avatarUrl != null">avatar_url = #{avatarUrl},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="realName != null">real_name = #{realName},</if>
+            <if test="idNumberCipher != null">id_number_cipher = #{idNumberCipher},</if>
+            <if test="idNumberMasked != null">id_number_masked = #{idNumberMasked},</if>
+            <if test="carModel != null">car_model = #{carModel},</if>
+            <if test="memberStatus != null">member_status = #{memberStatus},</if>
+            <if test="memberCardNo != null">member_card_no = #{memberCardNo},</if>
+            <if test="joinTime != null">join_time = #{joinTime},</if>
+            <if test="appAdminType != null">app_admin_type = #{appAdminType},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="lastLoginIp != null">last_login_ip = #{lastLoginIp},</if>
+            <if test="lastLoginTime != null">last_login_time = #{lastLoginTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        where user_id = #{userId}
+    </update>
+
+    <delete id="deleteMcUserByIds" parameterType="Long">
+        delete from mc_user where user_id in
+        <foreach collection="array" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </delete>
+
+</mapper>
