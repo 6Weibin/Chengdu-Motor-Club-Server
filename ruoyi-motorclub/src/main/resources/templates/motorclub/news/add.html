@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('新增新闻')" />
+    <th:block th:include="include :: summernote-css" />
+    <th:block th:include="include :: datetimepicker-css" />
+    <style type="text/css">
+        .news-cover-preview-box {
+            margin-top: 15px;
+        }
+
+        .news-cover-preview-image {
+            width: 240px;
+            height: 150px;
+            border: 1px solid #e5e6e7;
+            border-radius: 4px;
+            object-fit: cover;
+            display: none;
+            background: #f8f8f8;
+        }
+
+        .news-cover-preview-placeholder {
+            width: 240px;
+            height: 150px;
+            border: 1px dashed #d2d2d2;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999999;
+            background: #fafafa;
+        }
+    </style>
+</head>
+<body class="white-bg">
+<div class="wrapper wrapper-content animated fadeInRight ibox-content">
+    <form class="form-horizontal m" id="form-news-add">
+        <div class="form-group">
+            <label class="col-sm-3 control-label is-required">标题：</label>
+            <div class="col-sm-8">
+                <input name="title" class="form-control" type="text" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label is-required">标签：</label>
+            <div class="col-sm-8">
+                <input name="tagName" class="form-control" type="text" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label is-required">摘要：</label>
+            <div class="col-sm-8">
+                <textarea name="summary" class="form-control" rows="3" required></textarea>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label is-required">封面图地址：</label>
+            <div class="col-sm-8">
+                <input name="coverImageUrl" class="form-control" type="text" required>
+                <span class="help-block">支持直接填写图片地址，或选择本地图片自动上传并回填地址。</span>
+                <input id="coverImageFile" class="form-control" type="file" accept="image/*" style="margin-top: 10px;">
+                <div class="news-cover-preview-box">
+                    <img id="coverImagePreview" class="news-cover-preview-image" alt="新闻封面预览">
+                    <div id="coverImagePlaceholder" class="news-cover-preview-placeholder">暂未选择封面图</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label is-required">发布时间：</label>
+            <div class="col-sm-8">
+                <input id="publishTime" name="publishTime" class="form-control" type="text" readonly="readonly" required>
+                <span class="help-block">默认带出当前时间，可点击选择其他日期时间。</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">状态：</label>
+            <div class="col-sm-8">
+                <select name="status" class="form-control">
+                    <option value="0">上线</option>
+                    <option value="1">下线</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label is-required">正文：</label>
+            <div class="col-sm-8">
+                <input id="content" name="content" type="hidden">
+                <div class="summernote"></div>
+            </div>
+        </div>
+    </form>
+</div>
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: summernote-js" />
+<th:block th:include="include :: datetimepicker-js" />
+<script type="text/javascript">
+    var prefix = ctx + "motorclub/news";
+
+    $(function() {
+        // 初始化封面图交互，支持手工录入地址预览与本地选图自动上传。
+        bindCoverImageUploader();
+        // 新增新闻时默认带出当前时间，并统一使用日期时间选择器，避免手工录入格式错误。
+        initPublishTimePicker();
+    });
+
+    $('.summernote').summernote({
+        placeholder: '请输入新闻正文',
+        height: 260,
+        lang: 'zh-CN',
+        followingToolbar: false,
+        dialogsInBody: true,
+        callbacks: {
+            onImageUpload: function(files) {
+                sendFile(files[0], this);
+            }
+        }
+    });
+
+    /**
+     * 复用后台通用上传接口，保证正文图片可直接进入富文本内容。
+     *
+     * @param file 上传文件
+     * @param obj 当前编辑器对象
+     */
+    function sendFile(file, obj) {
+        var data = new FormData();
+        data.append("file", file);
+        $.ajax({
+            type: "POST",
+            url: ctx + "common/upload",
+            data: data,
+            cache: false,
+            contentType: false,
+            processData: false,
+            dataType: 'json',
+            success: function(result) {
+                if (result.code == web_status.SUCCESS) {
+                    $(obj).summernote('editor.insertImage', result.url, result.fileName);
+                } else {
+                    $.modal.alertError(result.msg);
+                }
+            },
+            error: function() {
+                $.modal.alertWarning("图片上传失败。");
+            }
+        });
+    }
+
+    /**
+     * 绑定封面图上传与预览事件。
+     */
+    function bindCoverImageUploader() {
+        $("input[name='coverImageUrl']").on("input", function() {
+            // 允许运营手工粘贴图片地址时同步预览当前图片。
+            previewCoverImage($(this).val());
+        });
+
+        $("#coverImageFile").on("change", function() {
+            var file = this.files[0];
+            if (!file) {
+                return;
+            }
+            if (!/^image\/.+$/.test(file.type)) {
+                $.modal.alertWarning("请选择图片文件。");
+                $(this).val("");
+                return;
+            }
+            // 先展示本地预览，再异步上传，减少运营等待时的不确定感。
+            previewLocalCoverImage(file);
+            uploadCoverImage(file);
+        });
+    }
+
+    /**
+     * 上传封面图并回填封面图地址。
+     *
+     * @param file 图片文件
+     */
+    function uploadCoverImage(file) {
+        var data = new FormData();
+        data.append("file", file);
+        $.modal.loading("封面图上传中，请稍候...");
+        $.ajax({
+            type: "POST",
+            url: ctx + "common/upload",
+            data: data,
+            cache: false,
+            contentType: false,
+            processData: false,
+            dataType: "json",
+            success: function(result) {
+                $.modal.closeLoading();
+                if (result.code == web_status.SUCCESS) {
+                    // 上传成功后以服务端返回地址为准，避免预览与最终保存地址不一致。
+                    $("input[name='coverImageUrl']").val(result.url);
+                    previewCoverImage(result.url);
+                    $.modal.msgSuccess("封面图上传成功");
+                } else {
+                    $.modal.alertError(result.msg);
+                }
+            },
+            error: function() {
+                $.modal.closeLoading();
+                $.modal.alertError("封面图上传失败。");
+            }
+        });
+    }
+
+    /**
+     * 预览本地待上传封面图。
+     *
+     * @param file 图片文件
+     */
+    function previewLocalCoverImage(file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            renderCoverImagePreview(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    /**
+     * 预览已存在的封面图地址。
+     *
+     * @param imageUrl 图片地址
+     */
+    function previewCoverImage(imageUrl) {
+        if (!imageUrl) {
+            clearCoverImagePreview();
+            return;
+        }
+        renderCoverImagePreview(imageUrl);
+    }
+
+    /**
+     * 渲染封面图预览区域。
+     *
+     * @param imageUrl 图片地址
+     */
+    function renderCoverImagePreview(imageUrl) {
+        $("#coverImagePreview").attr("src", imageUrl).show();
+        $("#coverImagePlaceholder").hide();
+    }
+
+    /**
+     * 清空封面图预览区域。
+     */
+    function clearCoverImagePreview() {
+        $("#coverImagePreview").attr("src", "").hide();
+        $("#coverImagePlaceholder").show();
+    }
+
+    /**
+     * 初始化发布时间选择器。
+     */
+    function initPublishTimePicker() {
+        var currentTime = formatDateTime(new Date());
+        $("#publishTime").val(currentTime).datetimepicker({
+            format: "yyyy-mm-dd hh:ii:ss",
+            todayBtn: true,
+            autoclose: true
+        });
+    }
+
+    /**
+     * 格式化日期时间字符串。
+     *
+     * @param date 日期对象
+     * @returns {string} yyyy-MM-dd HH:mm:ss 格式字符串
+     */
+    function formatDateTime(date) {
+        return date.getFullYear() + "-"
+            + padDateValue(date.getMonth() + 1) + "-"
+            + padDateValue(date.getDate()) + " "
+            + padDateValue(date.getHours()) + ":"
+            + padDateValue(date.getMinutes()) + ":"
+            + padDateValue(date.getSeconds());
+    }
+
+    /**
+     * 补齐两位数字时间片段。
+     *
+     * @param value 时间片段
+     * @returns {string} 两位数字字符串
+     */
+    function padDateValue(value) {
+        return value < 10 ? "0" + value : String(value);
+    }
+
+    $("#form-news-add").validate({
+        focusCleanup: true
+    });
+
+    /**
+     * 提交新增新闻表单。
+     */
+    function submitHandler() {
+        if ($.validate.form()) {
+            // 提交前将富文本 HTML 同步到隐藏域，避免正文丢失。
+            var content = $('.summernote').summernote('code');
+            if (!content || content === '<p><br></p>') {
+                $.modal.alertWarning("新闻正文不能为空");
+                return;
+            }
+            $("#content").val(content);
+            $.operate.save(prefix + "/add", $('#form-news-add').serialize());
+        }
+    }
+</script>
+</body>
+</html>

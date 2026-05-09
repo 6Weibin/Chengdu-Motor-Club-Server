@@ -23,6 +23,33 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark" column="remark"/>
     </resultMap>
 
+    <resultMap id="McPortalActivityListResult" type="com.ruoyi.motorclub.domain.vo.McPortalActivityListVo">
+        <id property="activityId" column="activity_id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="coverImageUrl" column="cover_image_url"/>
+        <result property="activityDate" column="activity_date"/>
+        <result property="startTime" column="start_time"/>
+        <result property="location" column="location"/>
+        <result property="capacity" column="capacity"/>
+        <result property="currentParticipants" column="current_participants"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <resultMap id="McPortalActivityDetailResult" type="com.ruoyi.motorclub.domain.vo.McPortalActivityDetailVo">
+        <id property="activityId" column="activity_id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="coverImageUrl" column="cover_image_url"/>
+        <result property="activityDate" column="activity_date"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="location" column="location"/>
+        <result property="capacity" column="capacity"/>
+        <result property="currentParticipants" column="current_participants"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
     <sql id="selectMcActivityVo">
         select activity_id, title, description, cover_image_url, activity_date, start_time, end_time, location,
                capacity, current_participants, status, create_by, create_time, update_by, update_time, remark
@@ -48,6 +75,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
         </where>
         order by activity_date desc, create_time desc
+    </select>
+
+    <select id="selectPortalActivityList" resultMap="McPortalActivityListResult">
+        select activity_id, title, description, cover_image_url, activity_date, start_time, location,
+               capacity, current_participants, status
+        from mc_activity
+        order by activity_date desc, start_time asc, activity_id desc
+    </select>
+
+    <select id="selectPortalActivityDetailById" parameterType="Long" resultMap="McPortalActivityDetailResult">
+        select activity_id, title, description, cover_image_url, activity_date, start_time, end_time, location,
+               capacity, current_participants, status
+        from mc_activity
+        where activity_id = #{activityId}
     </select>
 
     <insert id="insertMcActivity" parameterType="McActivity" useGeneratedKeys="true" keyProperty="activityId">

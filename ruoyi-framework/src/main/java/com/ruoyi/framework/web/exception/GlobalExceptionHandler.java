@@ -32,14 +32,20 @@ public class GlobalExceptionHandler
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
-     * 判断当前请求是否属于 app-api。
+     * 判断当前请求是否属于统一 API 前缀。
      *
      * @param request 当前请求
-     * @return true 表示 app-api 请求
+     * @return true 表示 app-api 或 portalApi 请求
      */
-    private boolean isAppApiRequest(HttpServletRequest request)
+    private boolean isApiRequest(HttpServletRequest request)
     {
-        return request != null && StringUtils.startsWithIgnoreCase(request.getRequestURI(), "/app-api/");
+        if (request == null)
+        {
+            return false;
+        }
+        String requestUri = request.getRequestURI();
+        return StringUtils.startsWithIgnoreCase(requestUri, "/app-api/")
+                || StringUtils.startsWithIgnoreCase(requestUri, "/portalApi/");
     }
 
     /**
@@ -50,8 +56,8 @@ public class GlobalExceptionHandler
     {
         String requestURI = request.getRequestURI();
         log.error("请求地址'{}',权限校验失败'{}'", requestURI, e.getMessage());
-        // 修复点：app-api 必须始终返回 JSON，不能再退回后台页面跳转语义。
-        if (isAppApiRequest(request) || ServletUtils.isAjaxRequest(request))
+        // 修复点：app-api 与 portalApi 必须始终返回 JSON，不能再退回后台页面跳转语义。
+        if (isApiRequest(request) || ServletUtils.isAjaxRequest(request))
         {
             return AjaxResult.error(PermissionUtils.getMsg(e.getMessage()));
         }
@@ -102,8 +108,8 @@ public class GlobalExceptionHandler
     public Object handleServiceException(ServiceException e, HttpServletRequest request)
     {
         log.error(e.getMessage(), e);
-        // 修复点：小程序和其它 app-api 调用即使未带 Ajax 头，也必须稳定返回 JSON 错误体。
-        if (isAppApiRequest(request) || ServletUtils.isAjaxRequest(request))
+        // 修复点：小程序和门户 API 即使未带 Ajax 头，也必须稳定返回 JSON 错误体。
+        if (isApiRequest(request) || ServletUtils.isAjaxRequest(request))
         {
             return AjaxResult.error(e.getMessage());
         }

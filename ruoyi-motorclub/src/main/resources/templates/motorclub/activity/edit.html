@@ -1,7 +1,36 @@
+<!-- 活动编辑页 by AI.Coding -->
 <!DOCTYPE html>
 <html lang="zh" xmlns:th="http://www.thymeleaf.org">
 <head>
     <th:block th:include="include :: header('编辑活动')" />
+    <th:block th:include="include :: datetimepicker-css" />
+    <style type="text/css">
+        .activity-cover-preview-box {
+            margin-top: 15px;
+        }
+
+        .activity-cover-preview-image {
+            width: 240px;
+            height: 150px;
+            border: 1px solid #e5e6e7;
+            border-radius: 4px;
+            object-fit: cover;
+            display: none;
+            background: #f8f8f8;
+        }
+
+        .activity-cover-preview-placeholder {
+            width: 240px;
+            height: 150px;
+            border: 1px dashed #d2d2d2;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999999;
+            background: #fafafa;
+        }
+    </style>
 </head>
 <body class="white-bg">
 <div class="wrapper wrapper-content animated fadeInRight ibox-content">
@@ -16,19 +45,16 @@
         <div class="form-group">
             <label class="col-sm-3 control-label is-required">活动日期：</label>
             <div class="col-sm-8">
-                <input name="activityDate" th:value="${#dates.format(activity.activityDate, 'yyyy-MM-dd HH:mm:ss')}" class="form-control" type="text" required>
+                <input id="activityDate" name="activityDate" th:value="${#dates.format(activity.activityDate, 'yyyy-MM-dd')}" class="form-control" type="text" readonly="readonly" required>
+                <span class="help-block">请通过日期控件选择活动日期。</span>
             </div>
         </div>
         <div class="form-group">
             <label class="col-sm-3 control-label is-required">开始时间：</label>
             <div class="col-sm-8">
-                <input name="startTime" th:field="*{startTime}" class="form-control" type="text" required>
-            </div>
-        </div>
-        <div class="form-group">
-            <label class="col-sm-3 control-label is-required">结束时间：</label>
-            <div class="col-sm-8">
-                <input name="endTime" th:field="*{endTime}" class="form-control" type="text" required>
+                <!-- jQuery Validate 1.21 会对 step 规则做 HTML5 校验，但当前 time 输入不支持该规则，这里去掉 step 以避免保存时报错。 -->
+                <input id="startTime" name="startTime" th:field="*{startTime}" class="form-control" type="time" required>
+                <span class="help-block">请通过时间控件选择开始时间。</span>
             </div>
         </div>
         <div class="form-group">
@@ -47,6 +73,12 @@
             <label class="col-sm-3 control-label">封面图：</label>
             <div class="col-sm-8">
                 <input name="coverImageUrl" th:field="*{coverImageUrl}" class="form-control" type="text">
+                <span class="help-block">支持直接填写图片地址，或选择本地图片自动上传并回填地址。</span>
+                <input id="coverImageFile" class="form-control" type="file" accept="image/*" style="margin-top: 10px;">
+                <div class="activity-cover-preview-box">
+                    <img id="coverImagePreview" class="activity-cover-preview-image" alt="活动封面预览">
+                    <div id="coverImagePlaceholder" class="activity-cover-preview-placeholder">暂未选择封面图</div>
+                </div>
             </div>
         </div>
         <div class="form-group">
@@ -69,9 +101,140 @@
     </form>
 </div>
 <th:block th:include="include :: footer" />
+<th:block th:include="include :: datetimepicker-js" />
 <script type="text/javascript">
     var prefix = ctx + "motorclub/activity";
 
+    $(function() {
+        // 编辑场景需要回显当前活动日期，并优先展示已保存封面图。
+        initActivityDatePicker();
+        bindCoverImageUploader();
+        previewCoverImage($("input[name='coverImageUrl']").val());
+    });
+
+    $("#form-activity-edit").validate({
+        focusCleanup: true
+    });
+
+    /**
+     * 初始化活动日期选择器。
+     */
+    function initActivityDatePicker() {
+        $("#activityDate").datetimepicker({
+            format: "yyyy-mm-dd",
+            minView: "month",
+            todayBtn: true,
+            autoclose: true
+        });
+    }
+
+    /**
+     * 绑定封面图上传与预览事件。
+     */
+    function bindCoverImageUploader() {
+        $("input[name='coverImageUrl']").on("input", function() {
+            // 允许运营手工粘贴图片地址时同步预览当前图片。
+            previewCoverImage($(this).val());
+        });
+
+        $("#coverImageFile").on("change", function() {
+            var file = this.files[0];
+            if (!file) {
+                return;
+            }
+            if (!/^image\/.+$/.test(file.type)) {
+                $.modal.alertWarning("请选择图片文件。");
+                $(this).val("");
+                return;
+            }
+            // 先显示本地预览，再执行上传，减少运营等待时的不确定感。
+            previewLocalCoverImage(file);
+            uploadCoverImage(file);
+        });
+    }
+
+    /**
+     * 上传封面图并回填图片地址。
+     *
+     * @param file 图片文件
+     */
+    function uploadCoverImage(file) {
+        var data = new FormData();
+        data.append("file", file);
+        $.modal.loading("封面图上传中，请稍候...");
+        $.ajax({
+            type: "POST",
+            url: ctx + "common/upload",
+            data: data,
+            cache: false,
+            contentType: false,
+            processData: false,
+            dataType: "json",
+            success: function(result) {
+                $.modal.closeLoading();
+                if (result.code == web_status.SUCCESS) {
+                    // 上传成功后统一以服务端返回地址为准，避免最终保存值与预览不一致。
+                    $("input[name='coverImageUrl']").val(result.url);
+                    previewCoverImage(result.url);
+                    $.modal.msgSuccess("封面图上传成功");
+                } else {
+                    $.modal.alertError(result.msg);
+                }
+            },
+            error: function() {
+                $.modal.closeLoading();
+                $.modal.alertError("封面图上传失败。");
+            }
+        });
+    }
+
+    /**
+     * 预览本地待上传封面图。
+     *
+     * @param file 图片文件
+     */
+    function previewLocalCoverImage(file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            renderCoverImagePreview(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    /**
+     * 预览已存在的封面图地址。
+     *
+     * @param imageUrl 图片地址
+     */
+    function previewCoverImage(imageUrl) {
+        if (!imageUrl) {
+            clearCoverImagePreview();
+            return;
+        }
+        renderCoverImagePreview(imageUrl);
+    }
+
+    /**
+     * 渲染封面图预览区域。
+     *
+     * @param imageUrl 图片地址
+     */
+    function renderCoverImagePreview(imageUrl) {
+        $("#coverImagePreview").attr("src", imageUrl).show();
+        $("#coverImagePlaceholder").hide();
+    }
+
+    /**
+     * 清空封面图预览区域。
+     */
+    function clearCoverImagePreview() {
+        $("#coverImagePreview").attr("src", "").hide();
+        $("#coverImagePlaceholder").show();
+    }
+
+    /**
+     * 提交编辑活动表单。
+     */
     function submitHandler() {
         if ($.validate.form()) {
             $.operate.save(prefix + "/edit", $('#form-activity-edit').serialize());

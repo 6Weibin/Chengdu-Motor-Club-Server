@@ -12,6 +12,8 @@ import com.ruoyi.motorclub.domain.McActivity;
 import com.ruoyi.motorclub.domain.McActivityRegistration;
 import com.ruoyi.motorclub.domain.McUser;
 import com.ruoyi.motorclub.domain.dto.McRegistrationReviewBody;
+import com.ruoyi.motorclub.domain.vo.McPortalActivityDetailVo;
+import com.ruoyi.motorclub.domain.vo.McPortalActivityListVo;
 import com.ruoyi.motorclub.enums.McActivityStatusEnum;
 import com.ruoyi.motorclub.enums.McRegistrationStatusEnum;
 import com.ruoyi.motorclub.mapper.McActivityMapper;
@@ -50,6 +52,39 @@ public class McActivityServiceImpl implements IMcActivityService
     }
 
     /**
+     * 查询门户活动列表。
+     *
+     * @return 门户活动列表
+     */
+    @Override
+    public List<McPortalActivityListVo> selectPortalActivityList()
+    {
+        return mcActivityMapper.selectPortalActivityList();
+    }
+
+    /**
+     * 查询门户活动详情。
+     *
+     * @param activityId 活动主键
+     * @return 门户活动详情
+     */
+    @Override
+    public McPortalActivityDetailVo selectPortalActivityDetail(Long activityId)
+    {
+        McPortalActivityDetailVo detailVo = mcActivityMapper.selectPortalActivityDetailById(activityId);
+        if (detailVo == null)
+        {
+            throw new ServiceException("活动不存在或暂不可访问");
+        }
+        // 门户详情页允许查看已结束活动，但已取消活动必须在服务层显式拦截。
+        if (McActivityStatusEnum.CANCELED.getCode().equals(detailVo.getStatus()))
+        {
+            throw new ServiceException("活动不存在或暂不可访问");
+        }
+        return detailVo;
+    }
+
+    /**
      * 通过主键查询活动。
      *
      * @param activityId 活动主键
@@ -74,6 +109,8 @@ public class McActivityServiceImpl implements IMcActivityService
         activity.setCoverImageUrl(McMediaUtils.normalizeStoredUrl(activity.getCoverImageUrl()));
         // 修复点：小程序活动创建页未提供状态选择，新增活动时需要由服务端补默认“未开始”状态，避免写入 null 触发数据库非空约束。
         activity.setStatus(StringUtils.defaultIfBlank(activity.getStatus(), McActivityStatusEnum.UPCOMING.getCode()));
+        // 修复点：活动表单已经不再录入结束时间，但数据库 end_time 仍是非空字段，这里统一回填为开始时间以兼容现有表结构。
+        normalizeLegacyEndTime(activity);
         activity.setCurrentParticipants(activity.getCurrentParticipants() == null ? 0 : activity.getCurrentParticipants());
         activity.setCreateBy(operator);
         activity.setCreateTime(DateUtils.getNowDate());
@@ -98,9 +135,24 @@ public class McActivityServiceImpl implements IMcActivityService
             throw new ServiceException("活动人数上限不能小于当前已通过报名人数");
         }
         activity.setCoverImageUrl(McMediaUtils.normalizeStoredUrl(activity.getCoverImageUrl()));
+        // 修复点：编辑活动时同样不再提交结束时间，需要在服务层保持遗留 end_time 字段与开始时间一致。
+        normalizeLegacyEndTime(activity);
         activity.setUpdateBy(operator);
         activity.setUpdateTime(DateUtils.getNowDate());
         return mcActivityMapper.updateMcActivity(activity);
+    }
+
+    /**
+     * 兼容旧表结构中的结束时间非空约束。
+     *
+     * @param activity 活动信息
+     */
+    private void normalizeLegacyEndTime(McActivity activity)
+    {
+        if (StringUtils.isBlank(activity.getEndTime()))
+        {
+            activity.setEndTime(activity.getStartTime());
+        }
     }
 
     /**

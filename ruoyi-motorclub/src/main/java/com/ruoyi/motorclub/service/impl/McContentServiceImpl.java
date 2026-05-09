@@ -1,16 +1,24 @@
 package com.ruoyi.motorclub.service.impl;
 
+import java.util.Date;
 import java.util.List;
 import javax.annotation.Resource;
 import org.springframework.stereotype.Service;
 import com.ruoyi.common.core.text.Convert;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
+import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.motorclub.constant.McConstants;
 import com.ruoyi.motorclub.domain.McBanner;
 import com.ruoyi.motorclub.domain.McBenefit;
+import com.ruoyi.motorclub.domain.McNews;
+import com.ruoyi.motorclub.domain.dto.McPortalNewsQuery;
+import com.ruoyi.motorclub.domain.vo.McPortalNewsDetailVo;
+import com.ruoyi.motorclub.domain.vo.McPortalNewsListVo;
 import com.ruoyi.motorclub.domain.vo.McSystemSettingVo;
 import com.ruoyi.motorclub.mapper.McBannerMapper;
 import com.ruoyi.motorclub.mapper.McBenefitMapper;
+import com.ruoyi.motorclub.mapper.McNewsMapper;
 import com.ruoyi.motorclub.service.IMcContentService;
 import com.ruoyi.motorclub.util.McMediaUtils;
 import com.ruoyi.system.domain.SysConfig;
@@ -29,6 +37,9 @@ public class McContentServiceImpl implements IMcContentService
 
     @Resource
     private McBenefitMapper mcBenefitMapper;
+
+    @Resource
+    private McNewsMapper mcNewsMapper;
 
     @Resource
     private ISysConfigService sysConfigService;
@@ -196,6 +207,123 @@ public class McContentServiceImpl implements IMcContentService
     }
 
     /**
+     * 查询新闻列表。
+     *
+     * @param news 查询条件
+     * @return 新闻列表
+     */
+    @Override
+    public List<McNews> selectMcNewsList(McNews news)
+    {
+        return mcNewsMapper.selectMcNewsList(news);
+    }
+
+    /**
+     * 通过主键查询新闻。
+     *
+     * @param newsId 新闻主键
+     * @return 新闻信息
+     */
+    @Override
+    public McNews selectMcNewsById(Long newsId)
+    {
+        return mcNewsMapper.selectMcNewsById(newsId);
+    }
+
+    /**
+     * 新增新闻。
+     *
+     * @param news 新闻信息
+     * @param operator 操作人
+     * @return 影响行数
+     */
+    @Override
+    public int insertMcNews(McNews news, String operator)
+    {
+        if (news == null)
+        {
+            throw new ServiceException("新闻内容不能为空");
+        }
+        // 新闻封面路径沿用现有媒体归一化规则，避免门户拿到混杂格式的地址。
+        news.setCoverImageUrl(McMediaUtils.normalizeStoredUrl(news.getCoverImageUrl()));
+        validateNews(news);
+        Date now = DateUtils.getNowDate();
+        news.setCreateBy(operator);
+        news.setCreateTime(now);
+        news.setUpdateBy(operator);
+        news.setUpdateTime(now);
+        return mcNewsMapper.insertMcNews(news);
+    }
+
+    /**
+     * 修改新闻。
+     *
+     * @param news 新闻信息
+     * @param operator 操作人
+     * @return 影响行数
+     */
+    @Override
+    public int updateMcNews(McNews news, String operator)
+    {
+        if (news == null)
+        {
+            throw new ServiceException("新闻内容不能为空");
+        }
+        if (news.getNewsId() == null)
+        {
+            throw new ServiceException("新闻主键不能为空");
+        }
+        requireNews(news.getNewsId());
+        // 更新时同样先标准化封面路径，再统一做字段完整性校验。
+        news.setCoverImageUrl(McMediaUtils.normalizeStoredUrl(news.getCoverImageUrl()));
+        validateNews(news);
+        news.setUpdateBy(operator);
+        news.setUpdateTime(DateUtils.getNowDate());
+        return mcNewsMapper.updateMcNews(news);
+    }
+
+    /**
+     * 删除新闻。
+     *
+     * @param ids 主键串
+     * @return 影响行数
+     */
+    @Override
+    public int deleteMcNewsByIds(String ids)
+    {
+        return mcNewsMapper.deleteMcNewsByIds(Convert.toLongArray(ids));
+    }
+
+    /**
+     * 查询门户新闻列表。
+     *
+     * @param query 查询条件
+     * @return 门户新闻列表
+     */
+    @Override
+    public List<McPortalNewsListVo> selectPortalNewsList(McPortalNewsQuery query)
+    {
+        return mcNewsMapper.selectPortalNewsList(query);
+    }
+
+    /**
+     * 查询门户新闻详情。
+     *
+     * @param newsId 新闻主键
+     * @return 门户新闻详情
+     */
+    @Override
+    public McPortalNewsDetailVo selectPortalNewsDetail(Long newsId)
+    {
+        McPortalNewsDetailVo detailVo = mcNewsMapper.selectPortalNewsDetailById(newsId);
+        if (detailVo == null)
+        {
+            throw new ServiceException("新闻不存在或暂不可访问");
+        }
+        return detailVo;
+    }
+
+    /**
      * 查询系统配置。
      *
      * @return 系统配置
@@ -258,5 +386,62 @@ public class McContentServiceImpl implements IMcContentService
             config.setUpdateBy(operator);
             sysConfigService.updateConfig(config);
         }
+    }
+
+    /**
+     * 校验新闻必填字段。
+     *
+     * @param news 新闻信息
+     */
+    private void validateNews(McNews news)
+    {
+        if (news == null)
+        {
+            throw new ServiceException("新闻内容不能为空");
+        }
+        if (StringUtils.isBlank(news.getTitle()))
+        {
+            throw new ServiceException("新闻标题不能为空");
+        }
+        if (StringUtils.isBlank(news.getTagName()))
+        {
+            throw new ServiceException("新闻标签不能为空");
+        }
+        if (StringUtils.isBlank(news.getSummary()))
+        {
+            throw new ServiceException("新闻摘要不能为空");
+        }
+        if (StringUtils.isBlank(news.getCoverImageUrl()))
+        {
+            throw new ServiceException("封面图不能为空");
+        }
+        if (StringUtils.isBlank(news.getContent()))
+        {
+            throw new ServiceException("新闻正文不能为空");
+        }
+        if (news.getPublishTime() == null)
+        {
+            throw new ServiceException("发布时间不能为空");
+        }
+        if (!"0".equals(news.getStatus()) && !"1".equals(news.getStatus()))
+        {
+            throw new ServiceException("新闻状态不合法");
+        }
+    }
+
+    /**
+     * 校验新闻是否存在。
+     *
+     * @param newsId 新闻主键
+     * @return 新闻信息
+     */
+    private McNews requireNews(Long newsId)
+    {
+        McNews news = mcNewsMapper.selectMcNewsById(newsId);
+        if (news == null)
+        {
+            throw new ServiceException("新闻不存在");
+        }
+        return news;
     }
 }

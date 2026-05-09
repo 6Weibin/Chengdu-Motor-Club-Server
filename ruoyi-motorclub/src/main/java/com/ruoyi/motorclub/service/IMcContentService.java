@@ -3,6 +3,10 @@ package com.ruoyi.motorclub.service;
 import java.util.List;
 import com.ruoyi.motorclub.domain.McBanner;
 import com.ruoyi.motorclub.domain.McBenefit;
+import com.ruoyi.motorclub.domain.McNews;
+import com.ruoyi.motorclub.domain.dto.McPortalNewsQuery;
+import com.ruoyi.motorclub.domain.vo.McPortalNewsDetailVo;
+import com.ruoyi.motorclub.domain.vo.McPortalNewsListVo;
 import com.ruoyi.motorclub.domain.vo.McSystemSettingVo;
 
 /**
@@ -109,6 +113,64 @@ public interface IMcContentService
      * @return 影响行数
      */
     int deleteMcBenefitByIds(String ids);
+
+    /**
+     * 查询新闻列表。
+     *
+     * @param news 查询条件
+     * @return 新闻列表
+     */
+    List<McNews> selectMcNewsList(McNews news);
+
+    /**
+     * 通过主键查询新闻。
+     *
+     * @param newsId 新闻主键
+     * @return 新闻信息
+     */
+    McNews selectMcNewsById(Long newsId);
+
+    /**
+     * 新增新闻。
+     *
+     * @param news 新闻信息
+     * @param operator 操作人
+     * @return 影响行数
+     */
+    int insertMcNews(McNews news, String operator);
+
+    /**
+     * 修改新闻。
+     *
+     * @param news 新闻信息
+     * @param operator 操作人
+     * @return 影响行数
+     */
+    int updateMcNews(McNews news, String operator);
+
+    /**
+     * 删除新闻。
+     *
+     * @param ids 主键串
+     * @return 影响行数
+     */
+    int deleteMcNewsByIds(String ids);
+
+    /**
+     * 查询门户新闻列表。
+     *
+     * @param query 查询条件
+     * @return 门户新闻列表
+     */
+    List<McPortalNewsListVo> selectPortalNewsList(McPortalNewsQuery query);
+
+    /**
+     * 查询门户新闻详情。
+     *
+     * @param newsId 新闻主键
+     * @return 门户新闻详情
+     */
+    McPortalNewsDetailVo selectPortalNewsDetail(Long newsId);
 
     /**
      * 查询系统配置。

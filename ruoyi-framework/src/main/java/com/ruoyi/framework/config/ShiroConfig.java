@@ -330,6 +330,8 @@ public class ShiroConfig
         filterChainDefinitionMap.put("/register", "anon,captchaValidate");
         // 修复点：小程序 app-api 走独立 token 鉴权，不应再落入后台网页登录会话链并被 302 到 /login。
         filterChainDefinitionMap.put("/app-api/motorclub/**", "anon");
+        // 门户公开接口统一走 portalApi 前缀，并显式加入匿名白名单。
+        filterChainDefinitionMap.put("/portalApi/**", "anon");
         // 系统权限列表
         // filterChainDefinitionMap.putAll(SpringUtils.getBean(IMenuService.class).selectPermsAll());
 

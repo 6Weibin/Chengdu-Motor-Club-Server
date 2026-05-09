@@ -3,6 +3,7 @@ package com.ruoyi.framework.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
@@ -54,5 +55,24 @@ public class ResourcesConfig implements WebMvcConfigurer
     public void addInterceptors(InterceptorRegistry registry)
     {
         registry.addInterceptor(repeatSubmitInterceptor).addPathPatterns("/**");
+    }
+
+    /**
+     * 配置门户公开接口的跨域规则。
+     * <p>
+     * 修复点：门户 H5 预览服务运行在 127.0.0.1:4173，而新闻接口走 127.0.0.1，
+     * 浏览器会按跨域请求处理；这里显式放开 portalApi 的联调来源，保证响应带上 CORS 头。
+     * </p>
+     *
+     * @param registry 跨域注册器
+     */
+    @Override
+    public void addCorsMappings(CorsRegistry registry)
+    {
+        registry.addMapping("/portalApi/**")
+                .allowedOriginPatterns("http://127.0.0.1:4173", "http://localhost:4173")
+                .allowedMethods("GET", "OPTIONS")
+                .allowedHeaders("*")
+                .maxAge(3600);
     }
 }

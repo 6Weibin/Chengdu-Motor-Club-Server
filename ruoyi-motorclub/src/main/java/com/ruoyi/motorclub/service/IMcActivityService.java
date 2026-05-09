@@ -4,6 +4,8 @@ import java.util.List;
 import com.ruoyi.motorclub.domain.McActivity;
 import com.ruoyi.motorclub.domain.McActivityRegistration;
 import com.ruoyi.motorclub.domain.dto.McRegistrationReviewBody;
+import com.ruoyi.motorclub.domain.vo.McPortalActivityDetailVo;
+import com.ruoyi.motorclub.domain.vo.McPortalActivityListVo;
 
 /**
  * 活动与报名业务服务接口
@@ -19,6 +21,21 @@ public interface IMcActivityService
      * @return 活动列表
      */
     List<McActivity> selectMcActivityList(McActivity activity);
+
+    /**
+     * 查询门户活动列表。
+     *
+     * @return 门户活动列表
+     */
+    List<McPortalActivityListVo> selectPortalActivityList();
+
+    /**
+     * 查询门户活动详情。
+     *
+     * @param activityId 活动主键
+     * @return 门户活动详情
+     */
+    McPortalActivityDetailVo selectPortalActivityDetail(Long activityId);
 
     /**
      * 通过主键查询活动。
