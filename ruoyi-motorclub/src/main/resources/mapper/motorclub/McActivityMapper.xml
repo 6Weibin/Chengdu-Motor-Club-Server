@@ -64,6 +64,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectMcActivityList" parameterType="McActivity" resultMap="McActivityResult">
         <include refid="selectMcActivityVo"/>
         <where>
+            <!-- 业务规则：普通活动管理列表不展示逻辑删除数据。 -->
+            and status != 'deleted'
             <if test="title != null and title != ''">
                 and title like concat('%', #{title}, '%')
             </if>
@@ -77,10 +79,26 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         order by activity_date desc, create_time desc
     </select>
 
+    <select id="selectDeletedMcActivityList" parameterType="McActivity" resultMap="McActivityResult">
+        <include refid="selectMcActivityVo"/>
+        <where>
+            <!-- 业务规则：已删除活动管理页面只展示逻辑删除数据。 -->
+            and status = 'deleted'
+            <if test="title != null and title != ''">
+                and title like concat('%', #{title}, '%')
+            </if>
+            <if test="location != null and location != ''">
+                and location like concat('%', #{location}, '%')
+            </if>
+        </where>
+        order by update_time desc, activity_date desc, create_time desc
+    </select>
+
     <select id="selectPortalActivityList" resultMap="McPortalActivityListResult">
         select activity_id, title, description, cover_image_url, activity_date, start_time, location,
                capacity, current_participants, status
         from mc_activity
+        where status != 'deleted'
         order by activity_date desc, start_time asc, activity_id desc
     </select>
 
@@ -89,6 +107,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                capacity, current_participants, status
         from mc_activity
         where activity_id = #{activityId}
+          and status != 'deleted'
     </select>
 
     <insert id="insertMcActivity" parameterType="McActivity" useGeneratedKeys="true" keyProperty="activityId">
@@ -121,11 +140,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where activity_id = #{activityId}
     </update>
 
-    <delete id="deleteMcActivityByIds" parameterType="Long">
-        delete from mc_activity where activity_id in
-        <foreach collection="array" item="activityId" open="(" separator="," close=")">
-            #{activityId}
-        </foreach>
-    </delete>
+    <update id="updateMcActivityStatus" parameterType="McActivity">
+        update mc_activity
+        set status = #{status},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        where activity_id = #{activityId}
+    </update>
 
 </mapper>

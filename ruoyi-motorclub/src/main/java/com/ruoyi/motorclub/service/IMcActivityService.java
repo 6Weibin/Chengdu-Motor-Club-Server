@@ -23,6 +23,14 @@ public interface IMcActivityService
     List<McActivity> selectMcActivityList(McActivity activity);
 
     /**
+     * 查询已删除活动列表。
+     *
+     * @param activity 查询条件
+     * @return 已删除活动列表
+     */
+    List<McActivity> selectDeletedMcActivityList(McActivity activity);
+
+    /**
      * 查询门户活动列表。
      *
      * @return 门户活动列表
@@ -64,12 +72,23 @@ public interface IMcActivityService
     int updateMcActivity(McActivity activity, String operator);
 
     /**
-     * 删除活动。
+     * 逻辑删除活动。
      *
      * @param ids 活动主键串
+     * @param operator 操作人
      * @return 影响行数
      */
-    int deleteMcActivityByIds(String ids);
+    int deleteMcActivityByIds(String ids, String operator);
+
+    /**
+     * 恢复已删除活动。
+     *
+     * @param activityId 活动主键
+     * @param status 恢复后的目标状态
+     * @param operator 操作人
+     * @return 影响行数
+     */
+    int restoreMcActivity(Long activityId, String status, String operator);
 
     /**
      * 提交活动报名。

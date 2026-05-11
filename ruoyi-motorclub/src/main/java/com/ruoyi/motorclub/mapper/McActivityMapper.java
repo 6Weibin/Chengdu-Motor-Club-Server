@@ -29,6 +29,14 @@ public interface McActivityMapper
     List<McActivity> selectMcActivityList(McActivity activity);
 
     /**
+     * 查询已删除活动列表。
+     *
+     * @param activity 查询条件
+     * @return 已删除活动列表
+     */
+    List<McActivity> selectDeletedMcActivityList(McActivity activity);
+
+    /**
      * 查询门户活动列表。
      *
      * @return 门户活动列表
@@ -60,10 +68,10 @@ public interface McActivityMapper
     int updateMcActivity(McActivity activity);
 
     /**
-     * 批量删除活动。
+     * 更新活动状态。
      *
-     * @param activityIds 活动主键数组
+     * @param activity 活动状态更新信息
      * @return 影响行数
      */
-    int deleteMcActivityByIds(Long[] activityIds);
+    int updateMcActivityStatus(McActivity activity);
 }

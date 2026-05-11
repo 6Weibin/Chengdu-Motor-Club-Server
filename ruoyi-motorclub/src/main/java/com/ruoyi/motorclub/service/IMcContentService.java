@@ -123,6 +123,14 @@ public interface IMcContentService
     List<McNews> selectMcNewsList(McNews news);
 
     /**
+     * 查询已删除新闻列表。
+     *
+     * @param news 查询条件
+     * @return 已删除新闻列表
+     */
+    List<McNews> selectDeletedMcNewsList(McNews news);
+
+    /**
      * 通过主键查询新闻。
      *
      * @param newsId 新闻主键
@@ -149,12 +157,23 @@ public interface IMcContentService
     int updateMcNews(McNews news, String operator);
 
     /**
-     * 删除新闻。
+     * 逻辑删除新闻。
      *
      * @param ids 主键串
+     * @param operator 操作人
      * @return 影响行数
      */
-    int deleteMcNewsByIds(String ids);
+    int deleteMcNewsByIds(String ids, String operator);
+
+    /**
+     * 恢复已删除新闻。
+     *
+     * @param newsId 新闻主键
+     * @param status 恢复后的目标状态
+     * @param operator 操作人
+     * @return 影响行数
+     */
+    int restoreMcNews(Long newsId, String status, String operator);
 
     /**
      * 查询门户新闻列表。

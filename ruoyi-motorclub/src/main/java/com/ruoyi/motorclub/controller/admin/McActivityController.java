@@ -62,6 +62,34 @@ public class McActivityController extends BaseController
     }
 
     /**
+     * 打开已删除活动管理页面。
+     *
+     * @return 页面路径
+     */
+    @RequiresPermissions("motorclub:activity:deleted:view")
+    @GetMapping("/deleted")
+    public String deleted()
+    {
+        return PREFIX + "/deleted";
+    }
+
+    /**
+     * 查询已删除活动列表。
+     *
+     * @param activity 查询条件
+     * @return 已删除活动列表
+     */
+    @RequiresPermissions("motorclub:activity:deleted:list")
+    @PostMapping("/deleted/list")
+    @ResponseBody
+    public TableDataInfo deletedList(McActivity activity)
+    {
+        startPage();
+        List<McActivity> list = mcActivityService.selectDeletedMcActivityList(activity);
+        return getDataTable(list);
+    }
+
+    /**
      * 打开活动新增页面。
      *
      * @return 页面路径
@@ -119,7 +147,7 @@ public class McActivityController extends BaseController
     }
 
     /**
-     * 删除活动。
+     * 逻辑删除活动。
      *
      * @param ids 主键串
      * @return 操作结果
@@ -130,6 +158,22 @@ public class McActivityController extends BaseController
     @ResponseBody
     public AjaxResult remove(String ids)
     {
-        return toAjax(mcActivityService.deleteMcActivityByIds(ids));
+        return toAjax(mcActivityService.deleteMcActivityByIds(ids, getLoginName()));
+    }
+
+    /**
+     * 恢复已删除活动。
+     *
+     * @param activityId 活动主键
+     * @param status 恢复后的目标状态
+     * @return 操作结果
+     */
+    @RequiresPermissions("motorclub:activity:restore")
+    @Log(title = "车友会活动", businessType = BusinessType.UPDATE)
+    @PostMapping("/restore")
+    @ResponseBody
+    public AjaxResult restore(Long activityId, String status)
+    {
+        return toAjax(mcActivityService.restoreMcActivity(activityId, status, getLoginName()));
     }
 }

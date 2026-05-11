@@ -181,10 +181,12 @@
     function uploadCoverImage(file) {
         var data = new FormData();
         data.append("file", file);
+        data.append("bizType", "news-cover");
+        data.append("publicAccess", "Y");
         $.modal.loading("封面图上传中，请稍候...");
         $.ajax({
             type: "POST",
-            url: ctx + "common/upload",
+            url: ctx + "secure-file/file/upload",
             data: data,
             cache: false,
             contentType: false,
@@ -193,9 +195,14 @@
             success: function(result) {
                 $.modal.closeLoading();
                 if (result.code == web_status.SUCCESS) {
-                    // 上传成功后以服务端返回地址为准，避免预览与最终保存地址不一致。
-                    $("input[name='coverImageUrl']").val(result.url);
-                    previewCoverImage(result.url);
+                    var fileInfo = result.data || {};
+                    if (!fileInfo.viewUrl) {
+                        $.modal.alertError("文件中心未返回图片查看地址。");
+                        return;
+                    }
+                    // 上传成功后以文件中心的公开查看地址为准，门户展示时通过文件 ID 实时解密输出图片。
+                    $("input[name='coverImageUrl']").val(fileInfo.viewUrl);
+                    previewCoverImage(fileInfo.viewUrl);
                     $.modal.msgSuccess("封面图上传成功");
                 } else {
                     $.modal.alertError(result.msg);

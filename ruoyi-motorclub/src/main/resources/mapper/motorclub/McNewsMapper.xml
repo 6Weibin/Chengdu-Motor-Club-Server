@@ -53,6 +53,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectMcNewsList" parameterType="McNews" resultMap="McNewsResult">
         <include refid="selectMcNewsVo"/>
         <where>
+            <!-- 业务规则：普通新闻管理列表不展示逻辑删除数据。 -->
+            and status != 'deleted'
             <if test="title != null and title != ''">
                 and title like concat('%', #{title}, '%')
             </if>
@@ -64,6 +66,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
         </where>
         order by publish_time desc, create_time desc
+    </select>
+
+    <select id="selectDeletedMcNewsList" parameterType="McNews" resultMap="McNewsResult">
+        <include refid="selectMcNewsVo"/>
+        <where>
+            <!-- 业务规则：已删除新闻管理页面只展示逻辑删除数据。 -->
+            and status = 'deleted'
+            <if test="title != null and title != ''">
+                and title like concat('%', #{title}, '%')
+            </if>
+            <if test="tagName != null and tagName != ''">
+                and tag_name like concat('%', #{tagName}, '%')
+            </if>
+        </where>
+        order by update_time desc, publish_time desc, create_time desc
     </select>
 
     <insert id="insertMcNews" parameterType="McNews" useGeneratedKeys="true" keyProperty="newsId">
@@ -93,17 +110,19 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where news_id = #{newsId}
     </update>
 
-    <delete id="deleteMcNewsByIds" parameterType="Long">
-        delete from mc_news where news_id in
-        <foreach collection="array" item="newsId" open="(" separator="," close=")">
-            #{newsId}
-        </foreach>
-    </delete>
+    <update id="updateMcNewsStatus" parameterType="McNews">
+        update mc_news
+        set status = #{status},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        where news_id = #{newsId}
+    </update>
 
     <select id="selectPortalNewsList" parameterType="com.ruoyi.motorclub.domain.dto.McPortalNewsQuery" resultMap="McPortalNewsListResult">
         select news_id, title, tag_name, summary, cover_image_url, publish_time
         from mc_news
         where status = '0'
+          and status != 'deleted'
           and publish_time &lt;= now()
         order by publish_time desc, news_id desc
     </select>
@@ -113,6 +132,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         from mc_news
         where news_id = #{newsId}
           and status = '0'
+          and status != 'deleted'
           and publish_time &lt;= now()
     </select>
 

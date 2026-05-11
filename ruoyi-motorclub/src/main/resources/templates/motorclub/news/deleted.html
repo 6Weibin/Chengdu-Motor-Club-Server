@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('已删除新闻管理')" />
+</head>
+<body class="gray-bg">
+<!-- 已删除新闻管理页面 by AI.Coding -->
+<div class="container-div">
+    <div class="row">
+        <div class="col-sm-12 search-collapse">
+            <form id="deleted-news-form">
+                <div class="select-list">
+                    <ul>
+                        <li>标题：<input type="text" name="title"/></li>
+                        <li>标签：<input type="text" name="tagName"/></li>
+                        <li>
+                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                            <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                        </li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+        <div class="btn-group-sm" id="toolbar" role="group">
+            <a class="btn btn-success single disabled" onclick="restoreSelected()" shiro:hasPermission="motorclub:news:restore"><i class="fa fa-reply"></i> 恢复</a>
+        </div>
+        <div class="col-sm-12 select-table table-striped">
+            <table id="bootstrap-table"></table>
+        </div>
+    </div>
+</div>
+<th:block th:include="include :: footer" />
+<script th:inline="javascript">
+    var restoreFlag = [[${@permission.hasPermi('motorclub:news:restore')}]];
+    var prefix = ctx + "motorclub/news";
+
+    $(function() {
+        var options = {
+            url: prefix + "/deleted/list",
+            modalName: "已删除新闻",
+            columns: [{
+                checkbox: true
+            },
+            {
+                field: 'newsId',
+                title: '编号'
+            },
+            {
+                field: 'title',
+                title: '标题'
+            },
+            {
+                field: 'tagName',
+                title: '标签'
+            },
+            {
+                field: 'summary',
+                title: '摘要'
+            },
+            {
+                field: 'publishTime',
+                title: '发布时间'
+            },
+            {
+                field: 'status',
+                title: '状态',
+                formatter: function() {
+                    return '已删除';
+                }
+            },
+            {
+                title: '操作',
+                align: 'center',
+                formatter: function(value, row) {
+                    var actions = [];
+                    actions.push('<a class="btn btn-success btn-xs ' + restoreFlag + '" href="javascript:void(0)" onclick="restoreNews(\'' + row.newsId + '\')"><i class="fa fa-reply"></i>恢复</a>');
+                    return actions.join('');
+                }
+            }]
+        };
+        $.table.init(options);
+    });
+
+    /**
+     * 恢复当前表格选中的一条已删除新闻。
+     */
+    function restoreSelected() {
+        var rows = $.table.selectFirstColumns();
+        if (rows.length === 0) {
+            $.modal.alertWarning("请选择要恢复的新闻");
+            return;
+        }
+        restoreNews(rows[0]);
+    }
+
+    /**
+     * 打开恢复状态选择弹窗，并提交恢复请求。
+     *
+     * @param newsId 新闻主键
+     */
+    function restoreNews(newsId) {
+        var content = '<div class="form-horizontal" style="padding: 24px 24px 8px 24px;">'
+            + '<div class="form-group">'
+            + '<label class="col-sm-4 control-label">恢复状态：</label>'
+            + '<div class="col-sm-7">'
+            + '<select id="restoreStatus" class="form-control">'
+            + '<option value="">请选择</option>'
+            + '<option value="0">上线</option>'
+            + '<option value="1">下线</option>'
+            + '</select>'
+            + '</div>'
+            + '</div>'
+            + '</div>';
+        layer.open({
+            type: 1,
+            title: '恢复已删除新闻',
+            area: ['420px', '220px'],
+            content: content,
+            btn: ['确定', '取消'],
+            yes: function(index) {
+                var status = $("#restoreStatus").val();
+                if (!status) {
+                    // 业务规则：恢复必须由管理员明确选择目标状态。
+                    $.modal.alertWarning("请选择恢复后的新闻状态");
+                    return;
+                }
+                $.operate.post(prefix + "/restore", { "newsId": newsId, "status": status });
+                layer.close(index);
+            }
+        });
+    }
+</script>
+</body>
+</html>

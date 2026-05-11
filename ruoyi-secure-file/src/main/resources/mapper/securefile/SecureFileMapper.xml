@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.securefile.mapper.SecureFileMapper">
+
+    <resultMap id="SecureFileResult" type="SecureFile">
+        <id property="fileId" column="file_id"/>
+        <result property="originalName" column="original_name"/>
+        <result property="fileExt" column="file_ext"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="contentType" column="content_type"/>
+        <result property="bizType" column="biz_type"/>
+        <result property="publicAccess" column="public_access"/>
+        <result property="storedName" column="stored_name"/>
+        <result property="storagePath" column="storage_path"/>
+        <result property="sha256" column="sha256"/>
+        <result property="encryptAlg" column="encrypt_alg"/>
+        <result property="encryptIv" column="encrypt_iv"/>
+        <result property="status" column="status"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="selectSecureFileVo">
+        select file_id, original_name, file_ext, file_size, content_type, biz_type,
+               public_access, stored_name, storage_path, sha256, encrypt_alg, encrypt_iv,
+               status, create_by, create_time, update_by, update_time, remark
+        from sf_file
+    </sql>
+
+    <insert id="insertSecureFile" parameterType="SecureFile" useGeneratedKeys="true" keyProperty="fileId">
+        insert into sf_file (
+            original_name, file_ext, file_size, content_type, biz_type, public_access,
+            stored_name, storage_path, sha256, encrypt_alg, encrypt_iv, status,
+            create_by, create_time, update_by, update_time, remark
+        ) values (
+            #{originalName}, #{fileExt}, #{fileSize}, #{contentType}, #{bizType}, #{publicAccess},
+            #{storedName}, #{storagePath}, #{sha256}, #{encryptAlg}, #{encryptIv}, #{status},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
+        )
+    </insert>
+
+    <select id="selectSecureFileById" parameterType="Long" resultMap="SecureFileResult">
+        <include refid="selectSecureFileVo"/>
+        where file_id = #{fileId}
+    </select>
+
+    <select id="selectSecureFileList" parameterType="com.ruoyi.securefile.dto.SecureFileQuery" resultMap="SecureFileResult">
+        <include refid="selectSecureFileVo"/>
+        <where>
+            <if test="originalName != null and originalName != ''">
+                and original_name like concat('%', #{originalName}, '%')
+            </if>
+            <if test="fileExt != null and fileExt != ''">
+                and file_ext = #{fileExt}
+            </if>
+            <if test="bizType != null and bizType != ''">
+                and biz_type = #{bizType}
+            </if>
+            <if test="publicAccess != null and publicAccess != ''">
+                and public_access = #{publicAccess}
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="beginTime != null">
+                and create_time &gt;= #{beginTime}
+            </if>
+            <if test="endTime != null">
+                and create_time &lt; date_add(#{endTime}, interval 1 day)
+            </if>
+        </where>
+        order by create_time desc, file_id desc
+    </select>
+
+    <update id="updateSecureFileStatus" parameterType="SecureFile">
+        update sf_file
+        set status = #{status},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        where file_id = #{fileId}
+    </update>
+</mapper>

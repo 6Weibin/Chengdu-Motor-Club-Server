@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.ruoyi.common.annotation.Anonymous;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.motorclub.domain.McActivity;
 import com.ruoyi.motorclub.domain.McActivityRegistration;
 import com.ruoyi.motorclub.domain.McUser;
+import com.ruoyi.motorclub.enums.McActivityStatusEnum;
 import com.ruoyi.motorclub.service.IMcActivityService;
 
 /**
@@ -52,7 +54,13 @@ public class McActivityAppController extends McAppBaseController
     @GetMapping("/{activityId}")
     public AjaxResult detail(@PathVariable("activityId") Long activityId)
     {
-        return success(mcActivityService.selectMcActivityById(activityId));
+        McActivity activity = mcActivityService.selectMcActivityById(activityId);
+        if (activity == null || McActivityStatusEnum.DELETED.getCode().equals(activity.getStatus()))
+        {
+            // 业务规则：公开活动详情不能通过直连主键访问已删除活动。
+            throw new ServiceException("活动不存在或暂不可访问");
+        }
+        return success(activity);
     }
 
     /**

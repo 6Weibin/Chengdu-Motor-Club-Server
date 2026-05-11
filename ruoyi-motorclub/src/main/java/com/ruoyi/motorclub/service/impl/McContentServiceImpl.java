@@ -32,6 +32,15 @@ import com.ruoyi.system.service.ISysConfigService;
 @Service
 public class McContentServiceImpl implements IMcContentService
 {
+    /** 新闻逻辑删除状态。 */
+    private static final String NEWS_STATUS_DELETED = "deleted";
+
+    /** 新闻上线状态。 */
+    private static final String NEWS_STATUS_ONLINE = "0";
+
+    /** 新闻下线状态。 */
+    private static final String NEWS_STATUS_OFFLINE = "1";
+
     @Resource
     private McBannerMapper mcBannerMapper;
 
@@ -219,6 +228,18 @@ public class McContentServiceImpl implements IMcContentService
     }
 
     /**
+     * 查询已删除新闻列表。
+     *
+     * @param news 查询条件
+     * @return 已删除新闻列表
+     */
+    @Override
+    public List<McNews> selectDeletedMcNewsList(McNews news)
+    {
+        return mcNewsMapper.selectDeletedMcNewsList(news);
+    }
+
+    /**
      * 通过主键查询新闻。
      *
      * @param newsId 新闻主键
@@ -283,15 +304,67 @@ public class McContentServiceImpl implements IMcContentService
     }
 
     /**
-     * 删除新闻。
+     * 逻辑删除新闻。
      *
      * @param ids 主键串
+     * @param operator 操作人
      * @return 影响行数
      */
     @Override
-    public int deleteMcNewsByIds(String ids)
+    public int deleteMcNewsByIds(String ids, String operator)
     {
-        return mcNewsMapper.deleteMcNewsByIds(Convert.toLongArray(ids));
+        Long[] newsIds = Convert.toLongArray(ids);
+        int rows = 0;
+        for (Long newsId : newsIds)
+        {
+            McNews oldNews = requireNews(newsId);
+            if (NEWS_STATUS_DELETED.equals(oldNews.getStatus()))
+            {
+                // 重复删除保持幂等，避免管理端重复点击时报错。
+                rows++;
+                continue;
+            }
+            McNews news = new McNews();
+            news.setNewsId(newsId);
+            news.setStatus(NEWS_STATUS_DELETED);
+            news.setUpdateBy(operator);
+            news.setUpdateTime(DateUtils.getNowDate());
+            rows += mcNewsMapper.updateMcNewsStatus(news);
+        }
+        return rows;
+    }
+
+    /**
+     * 恢复已删除新闻。
+     *
+     * @param newsId 新闻主键
+     * @param status 恢复后的目标状态
+     * @param operator 操作人
+     * @return 影响行数
+     */
+    @Override
+    public int restoreMcNews(Long newsId, String status, String operator)
+    {
+        if (StringUtils.isBlank(status))
+        {
+            throw new ServiceException("请选择恢复后的新闻状态");
+        }
+        if (!isRecoverableNewsStatus(status))
+        {
+            throw new ServiceException("恢复状态不合法");
+        }
+        McNews oldNews = requireNews(newsId);
+        if (!NEWS_STATUS_DELETED.equals(oldNews.getStatus()))
+        {
+            throw new ServiceException("仅已删除新闻可恢复");
+        }
+        // 恢复时由管理员明确选择上线或下线，不保存删除前状态。
+        McNews news = new McNews();
+        news.setNewsId(newsId);
+        news.setStatus(status);
+        news.setUpdateBy(operator);
+        news.setUpdateTime(DateUtils.getNowDate());
+        return mcNewsMapper.updateMcNewsStatus(news);
     }
 
     /**
@@ -423,10 +496,22 @@ public class McContentServiceImpl implements IMcContentService
         {
             throw new ServiceException("发布时间不能为空");
         }
-        if (!"0".equals(news.getStatus()) && !"1".equals(news.getStatus()))
+        if (!NEWS_STATUS_ONLINE.equals(news.getStatus()) && !NEWS_STATUS_OFFLINE.equals(news.getStatus()))
         {
             throw new ServiceException("新闻状态不合法");
         }
+    }
+
+    /**
+     * 判断新闻恢复目标状态是否合法。
+     *
+     * @param status 新闻状态
+     * @return true 表示可恢复
+     */
+    private boolean isRecoverableNewsStatus(String status)
+    {
+        // 业务规则：已删除新闻只能恢复为上线或下线状态。
+        return NEWS_STATUS_ONLINE.equals(status) || NEWS_STATUS_OFFLINE.equals(status);
     }
 
     /**

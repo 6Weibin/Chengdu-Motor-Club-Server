@@ -52,6 +52,18 @@ public class McActivityServiceImpl implements IMcActivityService
     }
 
     /**
+     * 查询已删除活动列表。
+     *
+     * @param activity 查询条件
+     * @return 已删除活动列表
+     */
+    @Override
+    public List<McActivity> selectDeletedMcActivityList(McActivity activity)
+    {
+        return mcActivityMapper.selectDeletedMcActivityList(activity);
+    }
+
+    /**
      * 查询门户活动列表。
      *
      * @return 门户活动列表
@@ -156,25 +168,69 @@ public class McActivityServiceImpl implements IMcActivityService
     }
 
     /**
-     * 删除活动。
+     * 逻辑删除活动。
      *
      * @param ids 活动主键串
+     * @param operator 操作人
      * @return 影响行数
      */
     @Override
-    public int deleteMcActivityByIds(String ids)
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteMcActivityByIds(String ids, String operator)
     {
         Long[] activityIds = Convert.toLongArray(ids);
+        int rows = 0;
         for (Long activityId : activityIds)
         {
-            McActivityRegistration query = new McActivityRegistration();
-            query.setActivityId(activityId);
-            if (!mcActivityRegistrationMapper.selectMcActivityRegistrationList(query).isEmpty())
+            McActivity oldActivity = requireActivity(activityId);
+            if (McActivityStatusEnum.DELETED.getCode().equals(oldActivity.getStatus()))
             {
-                throw new ServiceException("活动存在报名记录，不能直接删除");
+                // 重复删除保持幂等，数据库状态不需要再次写入。
+                rows++;
+                continue;
             }
+            McActivity activity = new McActivity();
+            activity.setActivityId(activityId);
+            activity.setStatus(McActivityStatusEnum.DELETED.getCode());
+            activity.setUpdateBy(operator);
+            activity.setUpdateTime(DateUtils.getNowDate());
+            rows += mcActivityMapper.updateMcActivityStatus(activity);
         }
-        return mcActivityMapper.deleteMcActivityByIds(activityIds);
+        return rows;
+    }
+
+    /**
+     * 恢复已删除活动。
+     *
+     * @param activityId 活动主键
+     * @param status 恢复后的目标状态
+     * @param operator 操作人
+     * @return 影响行数
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int restoreMcActivity(Long activityId, String status, String operator)
+    {
+        if (StringUtils.isBlank(status))
+        {
+            throw new ServiceException("请选择恢复后的活动状态");
+        }
+        if (!McActivityStatusEnum.isRecoverableStatus(status))
+        {
+            throw new ServiceException("恢复状态不合法");
+        }
+        McActivity oldActivity = requireActivity(activityId);
+        if (!McActivityStatusEnum.DELETED.getCode().equals(oldActivity.getStatus()))
+        {
+            throw new ServiceException("仅已删除活动可恢复");
+        }
+        // 恢复时不依赖删除前状态，由管理员选择目标业务状态。
+        McActivity activity = new McActivity();
+        activity.setActivityId(activityId);
+        activity.setStatus(status);
+        activity.setUpdateBy(operator);
+        activity.setUpdateTime(DateUtils.getNowDate());
+        return mcActivityMapper.updateMcActivityStatus(activity);
     }
 
     /**

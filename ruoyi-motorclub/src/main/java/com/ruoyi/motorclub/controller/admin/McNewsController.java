@@ -63,6 +63,34 @@ public class McNewsController extends BaseController
     }
 
     /**
+     * 打开已删除新闻管理页面。
+     *
+     * @return 页面路径
+     */
+    @RequiresPermissions("motorclub:news:deleted:view")
+    @GetMapping("/deleted")
+    public String deleted()
+    {
+        return PREFIX + "/deleted";
+    }
+
+    /**
+     * 查询已删除新闻列表。
+     *
+     * @param news 查询条件
+     * @return 已删除新闻列表
+     */
+    @RequiresPermissions("motorclub:news:deleted:list")
+    @PostMapping("/deleted/list")
+    @ResponseBody
+    public TableDataInfo deletedList(McNews news)
+    {
+        startPage();
+        List<McNews> list = mcContentService.selectDeletedMcNewsList(news);
+        return getDataTable(list);
+    }
+
+    /**
      * 打开新闻新增页面。
      *
      * @return 页面路径
@@ -125,7 +153,7 @@ public class McNewsController extends BaseController
     }
 
     /**
-     * 删除新闻。
+     * 逻辑删除新闻。
      *
      * @param ids 主键串
      * @return 操作结果
@@ -136,6 +164,22 @@ public class McNewsController extends BaseController
     @ResponseBody
     public AjaxResult remove(String ids)
     {
-        return toAjax(mcContentService.deleteMcNewsByIds(ids));
+        return toAjax(mcContentService.deleteMcNewsByIds(ids, getLoginName()));
+    }
+
+    /**
+     * 恢复已删除新闻。
+     *
+     * @param newsId 新闻主键
+     * @param status 恢复后的目标状态
+     * @return 操作结果
+     */
+    @RequiresPermissions("motorclub:news:restore")
+    @Log(title = "车友会新闻", businessType = BusinessType.UPDATE)
+    @PostMapping("/restore")
+    @ResponseBody
+    public AjaxResult restore(Long newsId, String status)
+    {
+        return toAjax(mcContentService.restoreMcNews(newsId, status, getLoginName()));
     }
 }

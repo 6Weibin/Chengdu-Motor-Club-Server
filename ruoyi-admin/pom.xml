@@ -79,6 +79,12 @@
             <artifactId>ruoyi-transfer</artifactId>
         </dependency>
 
+        <!-- 安全文件上传模块-->
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>ruoyi-secure-file</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

@@ -101,7 +101,7 @@ public class McAdminActivityAppController extends McAdminAppBaseController
     }
 
     /**
-     * 删除活动。
+     * 逻辑删除活动。
      *
      * @param activityId 活动主键
      * @return 操作结果
@@ -109,8 +109,8 @@ public class McAdminActivityAppController extends McAdminAppBaseController
     @PostMapping("/remove/{activityId}")
     public AjaxResult remove(@PathVariable("activityId") Long activityId)
     {
-        getRequiredActivityManageUser();
-        return toAjax(mcActivityService.deleteMcActivityByIds(String.valueOf(activityId)));
+        McUser admin = getRequiredActivityManageUser();
+        return toAjax(mcActivityService.deleteMcActivityByIds(String.valueOf(activityId), buildOperator(admin)));
     }
 
     /**

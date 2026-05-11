@@ -30,6 +30,14 @@ public interface McNewsMapper
     List<McNews> selectMcNewsList(McNews news);
 
     /**
+     * 查询已删除新闻列表。
+     *
+     * @param news 查询条件
+     * @return 已删除新闻列表
+     */
+    List<McNews> selectDeletedMcNewsList(McNews news);
+
+    /**
      * 新增新闻。
      *
      * @param news 新闻信息
@@ -46,12 +54,12 @@ public interface McNewsMapper
     int updateMcNews(McNews news);
 
     /**
-     * 批量删除新闻。
+     * 更新新闻状态。
      *
-     * @param newsIds 新闻主键数组
+     * @param news 新闻状态更新信息
      * @return 影响行数
      */
-    int deleteMcNewsByIds(Long[] newsIds);
+    int updateMcNewsStatus(McNews news);
 
     /**
      * 查询门户新闻列表。
